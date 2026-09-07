@@ -7,11 +7,11 @@ export const PaymentModal: React.FC = () => {
     isPaymentModalOpen,
     setIsPaymentModalOpen,
     cartTotal,
-    cartSubtotal,
-    cartDiscount,
     processPayment,
     settings,
     showToast,
+    orderType,
+    tableNumber,
   } = usePOS();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('QRIS');
@@ -37,21 +37,31 @@ export const PaymentModal: React.FC = () => {
     setTimeout(async () => {
       await processPayment(selectedMethod, selectedMethod === 'TUNAI' ? cashAmount : cartTotal);
       setIsProcessing(false);
-    }, 600);
+    }, 500);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl p-6 max-w-lg w-full border border-[#ede7df] shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-[#fffdfa] rounded-3xl p-6 max-w-lg w-full border border-[#ede5d8] shadow-[0px_10px_35px_rgba(168,153,128,0.25)] space-y-4 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#ede7df]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#ede5d8]">
           <div>
-            <h2 className="text-xl font-bold text-[#1d1b16]">Pilih Metode Pembayaran</h2>
-            <p className="text-xs text-[#72787f]">Total Tagihan: <strong className="text-[#30628a] text-sm">{formatRupiah(cartTotal)}</strong></p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-[#292524]">Pilih Metode Pembayaran</h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef9c3] text-[#713f12] border border-[#fde68a]">
+                {orderType} {tableNumber ? `• ${tableNumber}` : ''}
+              </span>
+            </div>
+            <p className="text-xs text-[#78716c] mt-0.5">
+              Total Tagihan:{' '}
+              <strong className="text-[#713f12] text-base font-extrabold">
+                {formatRupiah(cartTotal)}
+              </strong>
+            </p>
           </div>
           <button
             onClick={() => setIsPaymentModalOpen(false)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[#72787f] hover:bg-[#f3ede4]"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716c] hover:bg-[#f7f3eb] hover:text-[#292524] transition-colors"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -64,12 +74,12 @@ export const PaymentModal: React.FC = () => {
               onClick={() => setSelectedMethod('QRIS')}
               className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${
                 selectedMethod === 'QRIS'
-                  ? 'bg-[#bee1ff] border-[#30628a] text-[#001e2f] font-bold shadow-xs'
-                  : 'bg-[#f9f3ea] border-[#ede7df] text-[#41474e] hover:bg-[#ede7df]'
+                  ? 'bg-[#fef9c3] border-[#fde68a] text-[#713f12] font-bold shadow-2xs'
+                  : 'bg-[#fdfbf7] border-[#ede5d8] text-[#57534e] hover:bg-[#fef9c3]/50'
               }`}
             >
-              <span className="material-symbols-outlined text-[24px] text-[#30628a]">qr_code_2</span>
-              <span className="text-xs">QRIS</span>
+              <span className="material-symbols-outlined text-[24px] text-[#713f12]">qr_code_2</span>
+              <span className="text-xs">QRIS Instan</span>
             </button>
           )}
 
@@ -78,11 +88,11 @@ export const PaymentModal: React.FC = () => {
               onClick={() => setSelectedMethod('TUNAI')}
               className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${
                 selectedMethod === 'TUNAI'
-                  ? 'bg-[#bee1ff] border-[#30628a] text-[#001e2f] font-bold shadow-xs'
-                  : 'bg-[#f9f3ea] border-[#ede7df] text-[#41474e] hover:bg-[#ede7df]'
+                  ? 'bg-[#fef9c3] border-[#fde68a] text-[#713f12] font-bold shadow-2xs'
+                  : 'bg-[#fdfbf7] border-[#ede5d8] text-[#57534e] hover:bg-[#fef9c3]/50'
               }`}
             >
-              <span className="material-symbols-outlined text-[24px] text-[#5e604d]">payments</span>
+              <span className="material-symbols-outlined text-[24px] text-[#713f12]">payments</span>
               <span className="text-xs">Tunai (Cash)</span>
             </button>
           )}
@@ -92,117 +102,132 @@ export const PaymentModal: React.FC = () => {
               onClick={() => setSelectedMethod('KARTU')}
               className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${
                 selectedMethod === 'KARTU'
-                  ? 'bg-[#bee1ff] border-[#30628a] text-[#001e2f] font-bold shadow-xs'
-                  : 'bg-[#f9f3ea] border-[#ede7df] text-[#41474e] hover:bg-[#ede7df]'
+                  ? 'bg-[#fef9c3] border-[#fde68a] text-[#713f12] font-bold shadow-2xs'
+                  : 'bg-[#fdfbf7] border-[#ede5d8] text-[#57534e] hover:bg-[#fef9c3]/50'
               }`}
             >
-              <span className="material-symbols-outlined text-[24px] text-[#40627b]">credit_card</span>
-              <span className="text-xs">Kartu Debit/Kredit</span>
+              <span className="material-symbols-outlined text-[24px] text-[#713f12]">credit_card</span>
+              <span className="text-xs">Kartu Debit/EDC</span>
             </button>
           )}
         </div>
 
-        {/* Method Specific UI */}
-        {selectedMethod === 'QRIS' && (
-          <div className="bg-[#f9f3ea] p-5 rounded-2xl border border-[#ede7df] flex flex-col items-center text-center space-y-3">
-            <div className="bg-white p-3 rounded-2xl border border-[#ede7df] shadow-xs">
-              {/* Dynamic QR Code Representation */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=KASIRKU_QRIS_AMOUNT_${cartTotal}_TIME_${Date.now()}`}
-                alt="QRIS Code"
-                className="w-40 h-40 object-contain rounded-lg"
-              />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-[#1d1b16]">{settings.storeName}</p>
-              <p className="text-xs text-[#72787f]">NMID: ID1029384756192 • Standar QRIS Nasional</p>
-              <p className="text-xs font-semibold text-emerald-700 mt-1">Scan melalui GoPay, OVO, ShopeePay, BCA Mobile, dll.</p>
-            </div>
-          </div>
-        )}
-
-        {selectedMethod === 'TUNAI' && (
-          <div className="space-y-3 bg-[#f9f3ea] p-4 rounded-2xl border border-[#ede7df]">
-            <div>
-              <label className="text-xs font-bold text-[#41474e] block mb-1">Nominal Uang Diterima</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-sm text-[#72787f]">Rp</span>
-                <input
-                  type="text"
-                  value={cashAmountStr}
-                  onChange={(e) => setCashAmountStr(e.target.value.replace(/\D/g, ''))}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#ede7df] rounded-xl text-lg font-bold text-[#1d1b16] outline-none focus:border-[#30628a]"
+        {/* Payment Detail Section */}
+        <div className="bg-[#fdfbf7] p-4 rounded-2xl border border-[#ede5d8]">
+          {selectedMethod === 'QRIS' && (
+            <div className="flex flex-col items-center justify-center py-3 text-center space-y-3">
+              <div className="p-3 bg-white rounded-2xl shadow-xs border-2 border-dashed border-[#ede5d8]">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=KASIRKU-ORDER-DEMO-PAYMENT"
+                  alt="QRIS Payment Code"
+                  className="w-40 h-40 object-contain rounded-lg"
                 />
               </div>
+              <p className="text-xs text-[#78716c] max-w-xs">
+                Scan QRIS dengan GoPay, OVO, Dana, ShopeePay, BCA, atau Mobile Banking apa saja
+              </p>
             </div>
+          )}
 
-            {/* Cash presets */}
-            <div className="grid grid-cols-4 gap-2">
-              {[cartTotal, 50000, 100000, 200000].map((amt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCashAmountStr(amt.toString())}
-                  className="py-1.5 px-2 bg-white hover:bg-[#ede7df] border border-[#ede7df] rounded-xl text-xs font-bold text-[#30628a] transition-colors"
+          {selectedMethod === 'TUNAI' && (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[#78716c]">Total Tagihan:</span>
+                <span className="font-bold text-[#292524]">{formatRupiah(cartTotal)}</span>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#57534e] block mb-1">
+                  Nominal Uang Diterima
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-sm text-[#78716c]">
+                    Rp
+                  </span>
+                  <input
+                    type="text"
+                    value={cashAmountStr}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setCashAmountStr(val);
+                    }}
+                    placeholder="0"
+                    className="w-full pl-10 pr-4 py-2 bg-white rounded-xl border border-[#ede5d8] focus:border-[#eab308] text-base font-bold text-[#292524] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Cash Presets */}
+              <div className="flex items-center gap-1.5 pt-1">
+                {[cartTotal, 50000, 100000, 150000, 200000].map((amt, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCashAmountStr(amt.toString())}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#fffdfa] text-[#713f12] border border-[#ede5d8] hover:bg-[#fef08a] transition-colors"
+                  >
+                    {amt === cartTotal ? 'Pas' : `${amt / 1000}k`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Change calculation */}
+              <div className="flex justify-between items-center pt-2 border-t border-[#ede5d8] text-xs">
+                <span className="text-[#78716c]">Kembalian:</span>
+                <span
+                  className={`font-extrabold text-sm ${
+                    cashAmount >= cartTotal ? 'text-emerald-700' : 'text-amber-700'
+                  }`}
                 >
-                  {idx === 0 ? 'Uang Pas' : formatRupiah(amt)}
-                </button>
-              ))}
+                  {cashAmount >= cartTotal ? formatRupiah(change) : 'Uang Kurang'}
+                </span>
+              </div>
             </div>
+          )}
 
-            <div className="flex items-center justify-between pt-2 border-t border-[#ede7df]">
-              <span className="text-xs font-semibold text-[#72787f]">Kembalian:</span>
-              <span className={`text-base font-bold ${cashAmount >= cartTotal ? 'text-[#5e604d]' : 'text-[#ba1a1a]'}`}>
-                {cashAmount >= cartTotal ? formatRupiah(change) : 'Uang Kurang'}
-              </span>
+          {selectedMethod === 'KARTU' && (
+            <div className="space-y-3 py-1">
+              <div>
+                <label className="text-xs font-semibold text-[#57534e] block mb-1">
+                  Nomor Referensi EDC / Approval Code
+                </label>
+                <input
+                  type="text"
+                  value={cardRef}
+                  onChange={(e) => setCardRef(e.target.value)}
+                  className="w-full px-3 py-2 bg-white rounded-xl border border-[#ede5d8] focus:border-[#eab308] text-xs font-bold text-[#292524] outline-none font-mono"
+                />
+              </div>
+              <p className="text-xs text-[#78716c]">
+                Masukkan kartu ke mesin EDC dan masukkan approval code di atas untuk konfirmasi.
+              </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {selectedMethod === 'KARTU' && (
-          <div className="space-y-3 bg-[#f9f3ea] p-4 rounded-2xl border border-[#ede7df]">
-            <div>
-              <label className="text-xs font-bold text-[#41474e] block mb-1">Nomor Approval / No. Referensi EDC</label>
-              <input
-                type="text"
-                value={cardRef}
-                onChange={(e) => setCardRef(e.target.value)}
-                placeholder="Contoh: REF-839201"
-                className="w-full px-3.5 py-2.5 bg-white border border-[#ede7df] rounded-xl text-sm font-mono font-bold text-[#1d1b16] outline-none"
-              />
-            </div>
-            <p className="text-xs text-[#72787f]">Pastikan kartu nasabah telah di-swipe / di-dip pada mesin EDC dan transaksi berhasil di-otorisasi.</p>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#ede7df]">
+        {/* Footer Actions */}
+        <div className="grid grid-cols-2 gap-3 pt-2">
           <button
-            type="button"
             onClick={() => setIsPaymentModalOpen(false)}
-            className="px-5 py-2.5 rounded-full bg-[#f3ede4] hover:bg-[#ede7df] text-[#41474e] font-bold text-xs"
+            className="py-3 rounded-2xl bg-[#f7f3eb] hover:bg-[#eee7d8] text-[#57534e] font-bold text-sm transition-colors border border-[#ede5d8]"
           >
             Batal
           </button>
           <button
-            type="button"
-            disabled={isProcessing || (selectedMethod === 'TUNAI' && cashAmount < cartTotal)}
             onClick={handleConfirm}
-            className={`px-7 py-2.5 rounded-full text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all ${
-              isProcessing
-                ? 'bg-gray-400 cursor-wait'
-                : 'bg-[#30628a] hover:bg-[#275b82] active:scale-95'
+            disabled={isProcessing || (selectedMethod === 'TUNAI' && cashAmount < cartTotal)}
+            className={`py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+              isProcessing || (selectedMethod === 'TUNAI' && cashAmount < cartTotal)
+                ? 'bg-stone-200 text-stone-400 cursor-not-allowed border border-stone-300'
+                : 'bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold shadow-2xs border border-[#fde68a]'
             }`}
           >
             {isProcessing ? (
-              <>
-                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                <span>Memproses...</span>
-              </>
+              <span className="inline-block w-5 h-5 border-2 border-[#713f12] border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                <span>Konfirmasi Pembayaran ({formatRupiah(cartTotal)})</span>
+                <span className="material-symbols-outlined text-[20px]">verified</span>
+                <span>Konfirmasi Pembayaran</span>
               </>
             )}
           </button>

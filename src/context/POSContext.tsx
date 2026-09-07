@@ -43,14 +43,29 @@ interface POSContextType {
   removeToast: (id: string) => void;
   
   // Cart Actions
-  addToCart: (product: Product) => boolean;
+  addToCart: (product: Product, notes?: string) => boolean;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, delta: number) => void;
+  updateCartItemNotes: (productId: string, notes: string) => void;
   clearCart: () => void;
   cartSubtotal: number;
   cartDiscount: number;
   setCartDiscount: (amount: number) => void;
   cartTotal: number;
+  
+  // Modern Cafe Order Details
+  orderType: 'Dine In' | 'Take Away';
+  setOrderType: (type: 'Dine In' | 'Take Away') => void;
+  customerName: string;
+  setCustomerName: (name: string) => void;
+  tableNumber: string;
+  setTableNumber: (table: string) => void;
+
+  // Smart AI Barista & Sound
+  soundTheme: 'chime' | 'bell' | 'click' | 'mute';
+  setSoundTheme: (theme: 'chime' | 'bell' | 'click' | 'mute') => void;
+  isAssistantOpen: boolean;
+  setIsAssistantOpen: (open: boolean) => void;
   
   // Checkout & Payment
   isPaymentModalOpen: boolean;
@@ -75,6 +90,8 @@ interface POSContextType {
   updateSettings: (newSettings: Partial<StoreSettings>) => void;
   setActiveCashierId: (cashierId: string) => void;
   addCashier: (name: string, role: 'Manager' | 'Kasir', avatarUrl?: string) => void;
+  updateCashier: (id: string, data: { name?: string; role?: 'Manager' | 'Kasir'; avatarUrl?: string }) => void;
+  deleteCashier: (id: string) => void;
   resetToDefaultData: () => void;
   
   // Audio chime
@@ -83,12 +100,58 @@ interface POSContextType {
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
 
-// Web Audio API subtle synth sounds
-function playAudioTone(type: 'beep' | 'success' | 'error' = 'beep') {
+// Web Audio API subtle aesthetic synth sounds
+function playAudioTone(type: 'beep' | 'success' | 'error' = 'beep', theme: 'chime' | 'bell' | 'click' | 'mute' = 'chime') {
+  if (theme === 'mute') return;
   try {
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
+
+    if (theme === 'click') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(type === 'error' ? 220 : 650, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+      return;
+    }
+
+    if (theme === 'bell') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      if (type === 'beep') {
+        osc.frequency.setValueAtTime(1046.5, ctx.currentTime); // C6
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.18);
+      } else if (type === 'success') {
+        osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+        osc.frequency.setValueAtTime(1318.5, ctx.currentTime + 0.1); // E6
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } else {
+        osc.frequency.setValueAtTime(330, ctx.currentTime);
+        gain.gain.setValueAtTime(0.09, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      }
+      return;
+    }
+
+    // Default: 'chime' (sweet harmonic pastel bell chime)
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -96,25 +159,27 @@ function playAudioTone(type: 'beep' | 'success' | 'error' = 'beep') {
 
     if (type === 'beep') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
       osc.start();
-      osc.stop(ctx.currentTime + 0.08);
+      osc.stop(ctx.currentTime + 0.1);
     } else if (type === 'success') {
       osc.type = 'triangle';
+      // Harmonic arpeggio (C5 -> E5 -> G5 -> C6)
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
       osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08); // E5
       osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16); // G5
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.24); // C6
+      gain.gain.setValueAtTime(0.09, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
       osc.start();
-      osc.stop(ctx.currentTime + 0.35);
+      osc.stop(ctx.currentTime + 0.45);
     } else if (type === 'error') {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(220, ctx.currentTime);
       osc.frequency.setValueAtTime(180, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.setValueAtTime(0.09, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
@@ -128,6 +193,13 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('kasir');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toasts, setToasts] = useState<ToastData[]>([]);
+
+  // Aesthetic POS state: Order Types, Customer Name, Table Number, Sound Theme & Smart Assistant
+  const [orderType, setOrderType] = useState<'Dine In' | 'Take Away'>('Dine In');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [tableNumber, setTableNumber] = useState<string>('');
+  const [soundTheme, setSoundTheme] = useState<'chime' | 'bell' | 'click' | 'mute'>('chime');
+  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
 
   // LocalStorage state initialization
   const [products, setProducts] = useState<Product[]>(() => {
@@ -205,8 +277,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const showToast = (message: string, type: 'error' | 'success' | 'warning' | 'info' = 'info') => {
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 5);
     setToasts((prev) => [...prev, { id, message, type }]);
-    if (type === 'error') playAudioTone('error');
-    else if (type === 'success') playAudioTone('success');
+    if (type === 'error') playAudioTone('error', soundTheme);
+    else if (type === 'success') playAudioTone('success', soundTheme);
 
     setTimeout(() => {
       removeToast(id);
@@ -222,13 +294,15 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const cartTotal = Math.max(0, cartSubtotal - cartDiscount);
 
   // Cart Operations
-  const addToCart = (product: Product): boolean => {
+  const addToCart = (product: Product, notes?: string): boolean => {
     if (product.stock <= 0) {
       showToast('Stok produk habis', 'error');
       return false;
     }
 
-    const existingIndex = cart.findIndex((item) => item.product.id === product.id);
+    const existingIndex = cart.findIndex(
+      (item) => item.product.id === product.id && (item.notes || '') === (notes || '')
+    );
     if (existingIndex > -1) {
       const currentQty = cart[existingIndex].quantity;
       if (currentQty >= product.stock) {
@@ -241,15 +315,21 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         )
       );
     } else {
-      setCart((prev) => [...prev, { product, quantity: 1 }]);
+      setCart((prev) => [...prev, { product, quantity: 1, notes }]);
     }
-    playAudioTone('beep');
+    playAudioTone('beep', soundTheme);
     return true;
+  };
+
+  const updateCartItemNotes = (productId: string, notes: string) => {
+    setCart((prev) =>
+      prev.map((item) => (item.product.id === productId ? { ...item, notes } : item))
+    );
   };
 
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
-    playAudioTone('beep');
+    playAudioTone('beep', soundTheme);
   };
 
   const updateCartQuantity = (productId: string, delta: number) => {
@@ -269,13 +349,13 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
         .filter((item): item is CartItem => item !== null);
     });
-    playAudioTone('beep');
+    playAudioTone('beep', soundTheme);
   };
 
   const clearCart = () => {
     setCart([]);
     setCartDiscount(0);
-    playAudioTone('beep');
+    playAudioTone('beep', soundTheme);
   };
 
   // Checkout process
@@ -303,6 +383,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       price: item.product.price,
       quantity: item.quantity,
       subtotal: item.product.price * item.quantity,
+      notes: item.notes,
     }));
 
     const change = Math.max(0, amountReceived - cartTotal);
@@ -323,6 +404,9 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       amountReceived,
       change,
       status: 'Selesai',
+      orderType,
+      customerName: customerName.trim() || undefined,
+      tableNumber: tableNumber.trim() || undefined,
     };
 
     // Deduct stock for all items
@@ -355,20 +439,22 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStockLogs((prev) => [...newStockLogs, ...prev]);
     setTransactions((prev) => [newTransaction, ...prev]);
 
-    // Clear current cart
+    // Clear current cart & reset temporary customer inputs
     setCart([]);
     setCartDiscount(0);
+    setCustomerName('');
+    setTableNumber('');
     setIsPaymentModalOpen(false);
     setActiveReceiptTransaction(newTransaction);
 
-    // Audio & celebratory visual effect
-    playAudioTone('success');
+    // Audio & celebratory visual effect with pastel confetti
+    playAudioTone('success', soundTheme);
     try {
       confetti({
-        particleCount: 60,
-        spread: 60,
+        particleCount: 75,
+        spread: 70,
         origin: { y: 0.6 },
-        colors: ['#30628a', '#a2d2ff', '#cae6ff', '#5e604d'],
+        colors: ['#94a3b8', '#cbd5e1', '#64748b', '#e2e8f0', '#475569'],
       });
     } catch {
       // Ignore
@@ -507,6 +593,32 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Akun kasir ${name} berhasil didaftarkan`, 'success');
   };
 
+  const updateCashier = (
+    id: string,
+    data: { name?: string; role?: 'Manager' | 'Kasir'; avatarUrl?: string }
+  ) => {
+    setCashiers((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...data } : c))
+    );
+    showToast('Data kasir berhasil diperbarui', 'success');
+  };
+
+  const deleteCashier = (id: string) => {
+    if (cashiers.length <= 1) {
+      showToast('Tidak dapat menghapus kasir terakhir', 'warning');
+      return;
+    }
+    const target = cashiers.find((c) => c.id === id);
+    const newCashiers = cashiers.filter((c) => c.id !== id);
+    setCashiers(newCashiers);
+
+    // If active cashier was deleted, switch to first available cashier
+    if (activeCashierId === id && newCashiers.length > 0) {
+      setActiveCashierIdState(newCashiers[0].id);
+    }
+    showToast(`Akun kasir "${target?.name || ''}" berhasil dihapus`, 'info');
+  };
+
   const resetToDefaultData = () => {
     setProducts(INITIAL_PRODUCTS);
     setCategories(INITIAL_CATEGORIES);
@@ -538,11 +650,22 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addToCart,
         removeFromCart,
         updateCartQuantity,
+        updateCartItemNotes,
         clearCart,
         cartSubtotal,
         cartDiscount,
         setCartDiscount,
         cartTotal,
+        orderType,
+        setOrderType,
+        customerName,
+        setCustomerName,
+        tableNumber,
+        setTableNumber,
+        soundTheme,
+        setSoundTheme,
+        isAssistantOpen,
+        setIsAssistantOpen,
         isPaymentModalOpen,
         setIsPaymentModalOpen,
         activeReceiptTransaction,
@@ -559,8 +682,10 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSettings,
         setActiveCashierId,
         addCashier,
+        updateCashier,
+        deleteCashier,
         resetToDefaultData,
-        playBeep: playAudioTone,
+        playBeep: (type) => playAudioTone(type, soundTheme),
       }}
     >
       {children}

@@ -14,141 +14,198 @@ export const ReceiptModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-[#ede7df] shadow-2xl space-y-4 my-8 animate-in zoom-in-95 duration-200">
-        {/* Actions Bar (Top) */}
-        <div className="flex items-center justify-between pb-2 border-b border-[#ede7df]">
-          <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
-            <span className="material-symbols-outlined text-[18px]">verified</span>
-            <span>Transaksi Sukses</span>
+    <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-[#fffdfa] rounded-3xl p-5 md:p-6 max-w-sm w-full border border-[#ede5d8] shadow-[0px_10px_35px_rgba(168,153,128,0.25)] space-y-4 my-6 animate-in zoom-in-95 duration-200">
+        {/* Header Modal Bar */}
+        <div className="flex items-center justify-between pb-2 border-b border-[#ede5d8]">
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-[#fef9c3] text-[#713f12] flex items-center justify-center text-xs font-bold border border-[#fde68a] shadow-2xs">
+              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+            </span>
+            <div>
+              <h3 className="font-bold text-sm text-[#292524]">Struk Pembelian</h3>
+              <p className="text-[11px] text-[#78716c] font-semibold">Struk Resmi Kasir</p>
+            </div>
           </div>
+
           <button
             onClick={() => setActiveReceiptTransaction(null)}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[#72787f] hover:bg-[#f3ede4]"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716c] hover:bg-[#f7f3eb] hover:text-[#292524] transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
-        {/* Printable Thermal Receipt Paper Container */}
+        {/* Printable Receipt Container */}
         <div
           id="printable-receipt"
-          className="bg-[#fafafa] p-5 rounded-2xl border border-dashed border-[#c1c7cf] font-mono text-xs text-[#1d1b16] space-y-3"
+          className="relative bg-[#fffdfa] p-5 rounded-3xl border-2 border-dashed border-[#ede5d8] text-xs text-[#292524] space-y-3 shadow-xs"
         >
-          {/* Header */}
+          {/* Subtle Top Pastel Dot Accents */}
+          <div className="flex justify-center items-center gap-2 pb-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#fefce8] border border-[#fde68a]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#fef9c3] border border-[#fde68a]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#fef08a] border border-[#fde68a]" />
+          </div>
+
+          {/* Store Information */}
           <div className="text-center space-y-1">
-            <h2 className="font-bold text-base tracking-wider uppercase text-black">
+            <h2 className="font-extrabold text-base tracking-wide uppercase text-[#292524]">
               {settings.storeName}
             </h2>
-            <p className="text-[11px] text-[#41474e]">{settings.branchName}</p>
-            <p className="text-[10px] text-[#72787f] leading-tight">{settings.address}</p>
-            <p className="text-[10px] text-[#72787f]">Telp: {settings.phone}</p>
+            <p className="text-xs font-bold text-[#713f12]">{settings.branchName}</p>
+            <p className="text-[10px] text-[#78716c] leading-relaxed max-w-[240px] mx-auto">
+              {settings.address}
+            </p>
+            <p className="text-[10px] text-[#78716c]">Telp: {settings.phone}</p>
           </div>
 
-          <div className="border-t border-dashed border-gray-400 my-2" />
+          {/* Soft Dashed Divider */}
+          <div className="border-t border-dashed border-[#ede5d8] my-2" />
 
-          {/* Meta Info */}
-          <div className="text-[11px] space-y-0.5">
-            <div className="flex justify-between">
-              <span>No. Faktur:</span>
-              <span className="font-bold">{trx.invoiceNumber}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Waktu:</span>
-              <span>
-                {trx.dateStr} {trx.timeStr}
+          {/* Order Type & Customer Details */}
+          <div className="bg-[#fef9c3]/50 p-2.5 rounded-2xl border border-[#fde68a] text-[11px] space-y-1 text-[#57534e]">
+            <div className="flex justify-between items-center">
+              <span className="text-[#78716c]">No. Faktur</span>
+              <span className="font-mono font-bold text-[#713f12] bg-white px-2 py-0.5 rounded-md border border-[#ede5d8]">
+                {trx.invoiceNumber}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span>Kasir:</span>
-              <span>{trx.cashierName}</span>
+
+            <div className="flex justify-between items-center">
+              <span className="text-[#78716c]">Pesanan</span>
+              <span className="font-bold text-[#292524]">
+                {trx.orderType || 'Dine In'}{' '}
+                {trx.tableNumber ? `(${trx.tableNumber})` : ''}
+              </span>
+            </div>
+
+            {trx.customerName && (
+              <div className="flex justify-between items-center">
+                <span className="text-[#78716c]">Pelanggan</span>
+                <span className="font-bold text-[#292524]">{trx.customerName}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span className="text-[#78716c]">Waktu</span>
+              <span className="font-medium text-[#292524]">
+                {trx.dateStr} • {trx.timeStr}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-[#78716c]">Kasir</span>
+              <span className="font-bold text-[#713f12]">{trx.cashierName}</span>
             </div>
           </div>
 
-          <div className="border-t border-dashed border-gray-400 my-2" />
+          {/* Item List Header */}
+          <div className="pt-1 pb-0.5 flex justify-between text-[10px] font-bold text-[#78716c] uppercase tracking-wider">
+            <span>Menu Pesanan</span>
+            <span>Subtotal</span>
+          </div>
 
-          {/* Item List */}
-          <div className="space-y-2">
+          {/* Items List */}
+          <div className="divide-y divide-dashed divide-[#ede5d8] my-1">
             {trx.items.map((item, idx) => (
-              <div key={idx} className="space-y-0.5">
-                <div className="font-bold">{item.name}</div>
-                <div className="flex justify-between text-[#41474e] text-[11px]">
-                  <span>
-                    {item.quantity} x {item.price.toLocaleString('id-ID')}
-                  </span>
-                  <span className="font-bold text-black">
-                    {item.subtotal.toLocaleString('id-ID')}
-                  </span>
+              <div key={idx} className="py-2 flex justify-between items-start gap-2 text-xs">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <div className="font-bold text-[#292524]">{item.name}</div>
+                  <div className="text-[11px] text-[#78716c]">
+                    {item.quantity} x {formatRupiah(item.price)}
+                  </div>
+                  {item.notes && (
+                    <div className="text-[10px] text-[#713f12] font-semibold italic">
+                      ↳ Catatan: {item.notes}
+                    </div>
+                  )}
                 </div>
+                <span className="font-bold text-[#292524] shrink-0">
+                  {formatRupiah(item.subtotal)}
+                </span>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-dashed border-gray-400 my-2" />
-
-          {/* Totals */}
-          <div className="space-y-1 text-[11px]">
-            <div className="flex justify-between">
+          {/* Calculation & Total Box */}
+          <div className="bg-[#fef9c3]/40 p-3 rounded-2xl border border-[#fde68a] space-y-1.5 text-xs">
+            <div className="flex justify-between text-[#78716c]">
               <span>Subtotal</span>
-              <span>{formatRupiah(trx.subtotal)}</span>
+              <span className="font-semibold text-[#292524]">{formatRupiah(trx.subtotal)}</span>
             </div>
+
             {trx.discount > 0 && (
-              <div className="flex justify-between text-emerald-800 font-bold">
+              <div className="flex justify-between text-[#713f12] font-bold">
                 <span>Diskon</span>
                 <span>-{formatRupiah(trx.discount)}</span>
               </div>
             )}
-            <div className="flex justify-between font-bold text-sm text-black pt-1 border-t border-gray-300">
-              <span>TOTAL</span>
-              <span>{formatRupiah(trx.total)}</span>
+
+            <div className="flex justify-between items-baseline font-bold text-sm text-[#292524] pt-1.5 border-t border-dashed border-[#fde68a]">
+              <span>Total Bayar</span>
+              <span className="text-base font-extrabold text-[#713f12]">
+                {formatRupiah(trx.total)}
+              </span>
             </div>
           </div>
 
-          <div className="border-t border-dashed border-gray-400 my-2" />
-
-          {/* Payment Info */}
-          <div className="space-y-0.5 text-[11px]">
-            <div className="flex justify-between">
-              <span>Metode:</span>
-              <span className="font-bold">{trx.paymentMethod}</span>
+          {/* Payment Method Details */}
+          <div className="text-[11px] space-y-1 px-1">
+            <div className="flex justify-between items-center text-[#78716c]">
+              <span>Metode Bayar</span>
+              <span className="font-bold text-[#713f12] bg-[#fef9c3] px-2.5 py-0.5 rounded-full border border-[#fde68a]">
+                {trx.paymentMethod}
+              </span>
             </div>
             {trx.paymentMethod === 'TUNAI' && (
               <>
-                <div className="flex justify-between">
-                  <span>Bayar:</span>
-                  <span>{formatRupiah(trx.amountReceived)}</span>
+                <div className="flex justify-between text-[#78716c]">
+                  <span>Uang Diterima</span>
+                  <span className="font-medium text-[#292524]">
+                    {formatRupiah(trx.amountReceived)}
+                  </span>
                 </div>
-                <div className="flex justify-between font-bold text-black">
-                  <span>Kembali:</span>
-                  <span>{formatRupiah(trx.change)}</span>
+                <div className="flex justify-between font-bold text-[#292524]">
+                  <span>Kembalian</span>
+                  <span className="text-emerald-700">{formatRupiah(trx.change)}</span>
                 </div>
               </>
             )}
           </div>
 
-          {/* Footer Barcode */}
-          <div className="pt-3 text-center space-y-1.5">
-            <div className="flex justify-center tracking-widest text-[16px] font-mono select-none opacity-80">
-              ||||| | |||| ||| ||||| || |||
-            </div>
-            <p className="text-[10px] text-gray-500 uppercase">
-              *** Terima Kasih Atas Kunjungan Anda ***
+          {/* Message Box */}
+          <div className="mt-3 p-3 rounded-2xl bg-[#fdfbf7] border border-[#ede5d8] text-center space-y-1">
+            <p className="text-xs font-bold text-[#713f12] leading-snug">
+              Terima kasih atas kunjungan Anda!
             </p>
-            <p className="text-[9px] text-gray-400">Barang yang sudah dibeli tidak dapat ditukar</p>
+            <p className="text-[11px] text-[#78716c]">
+              Semoga hari Anda menyenangkan~
+            </p>
+          </div>
+
+          {/* Footer Note */}
+          <div className="pt-1 text-center space-y-1">
+            <div className="flex justify-center font-mono tracking-widest text-[10px] text-[#78716c] opacity-60">
+              ||| | |||| ||| ||||| || |||
+            </div>
+            <p className="text-[10px] text-[#78716c]">
+              Simpan struk ini sebagai bukti transaksi resmi
+            </p>
           </div>
         </div>
 
-        {/* Action Buttons (Bottom) */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
           <button
             onClick={() => setActiveReceiptTransaction(null)}
-            className="py-2.5 rounded-xl bg-[#f3ede4] hover:bg-[#ede7df] text-[#41474e] font-bold text-xs transition-colors"
+            className="py-2.5 rounded-xl bg-[#f7f3eb] hover:bg-[#eee7d8] text-[#57534e] font-bold text-xs transition-colors border border-[#ede5d8]"
           >
             Tutup
           </button>
           <button
             onClick={handlePrint}
-            className="py-2.5 rounded-xl bg-[#30628a] hover:bg-[#275b82] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95"
+            className="py-2.5 rounded-xl bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 border border-[#fde68a]"
           >
             <span className="material-symbols-outlined text-[16px]">print</span>
             <span>Cetak Struk</span>

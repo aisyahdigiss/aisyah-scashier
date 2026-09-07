@@ -33,6 +33,7 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  notes?: string;
 }
 
 export type PaymentMethod = 'TUNAI' | 'QRIS' | 'KARTU';
@@ -44,6 +45,7 @@ export interface TransactionItem {
   price: number;
   quantity: number;
   subtotal: number;
+  notes?: string;
 }
 
 export interface Transaction {
@@ -62,6 +64,9 @@ export interface Transaction {
   amountReceived: number;
   change: number;
   status: 'Selesai' | 'Pending' | 'Batal';
+  orderType?: 'Dine In' | 'Take Away';
+  customerName?: string;
+  tableNumber?: string;
 }
 
 export interface StockLog {

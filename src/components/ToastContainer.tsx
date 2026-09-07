@@ -24,7 +24,7 @@ export const ToastContainer: React.FC = () => {
                 ? 'bg-[#e6f4ea] text-[#137333] border border-[#137333]/20'
                 : isWarning
                 ? 'bg-[#fef7e0] text-[#b06000] border border-[#b06000]/20'
-                : 'bg-[#30628a] text-white'
+                : 'bg-[#334155] text-white border border-[#475569]'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] shrink-0">

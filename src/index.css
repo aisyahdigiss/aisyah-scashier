@@ -2,47 +2,104 @@
 
 @layer base {
   :root {
-    --color-bg-cream: #fff9f0;
-    --color-primary: #30628a;
-    --color-primary-container: #a2d2ff;
-    --color-primary-dim: #9bcbf8;
-    --color-secondary: #40627b;
-    --color-secondary-container: #bee1ff;
-    --color-secondary-fixed: #cae6ff;
-    --color-tertiary: #5e604d;
-    --color-tertiary-container: #cecfb7;
-    --color-surface: #fff9f0;
-    --color-surface-lowest: #ffffff;
-    --color-surface-low: #f9f3ea;
-    --color-surface-container: #f3ede4;
-    --color-surface-high: #ede7df;
-    --color-surface-highest: #e7e2d9;
-    --color-on-surface: #1d1b16;
-    --color-on-surface-variant: #41474e;
-    --color-error: #ba1a1a;
-    --color-error-container: #ffdad6;
-    --color-on-error-container: #93000a;
+    /* Warm Beige Base & Soft Pastel Yellow System */
+    --color-bg-base: #f7f3eb;
+    --color-surface: #fffdfa;
+    --color-surface-container: #fdfbf7;
+    --color-surface-hover: #f5f0e4;
+    --color-border-subtle: #ede5d8;
+    --color-border-strong: #dfd5c3;
+    
+    /* Warm Beige Palette */
+    --color-beige-50: #fdfbf7;
+    --color-beige-100: #f7f3eb;
+    --color-beige-200: #eee7d8;
+    --color-beige-300: #e2d7c3;
+    --color-beige-400: #ccbea5;
+    --color-beige-500: #a89980;
+
+    /* Ultra Soft Pastel Yellow Palette */
+    --color-yellow-pastel-50: #fefce8;
+    --color-yellow-pastel-100: #fef9c3;
+    --color-yellow-pastel-200: #fef08a;
+    --color-yellow-pastel-300: #fde68a;
+    --color-yellow-pastel-400: #fcd34d;
+    --color-yellow-contrast: #713f12;
+
+    /* Text */
+    --color-on-surface: #292524;
+    --color-on-surface-muted: #78716c;
   }
 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #fff9f0;
-    color: #1d1b16;
+    background-color: #f7f3eb;
+    background-image: 
+      radial-gradient(at 10% 10%, rgba(254, 249, 195, 0.45) 0px, transparent 45%),
+      radial-gradient(at 90% 90%, rgba(254, 240, 138, 0.2) 0px, transparent 50%),
+      radial-gradient(at 50% 50%, rgba(247, 243, 235, 0.85) 0px, transparent 65%);
+    background-attachment: fixed;
+    color: #292524;
     overflow-x: hidden;
   }
 }
 
-/* Custom Soft POS Shadow System */
+/* Custom Soft Warm Beige & Gentle Pastel Yellow Aesthetic System */
+.pastel-mesh-bg {
+  background: 
+    radial-gradient(at 15% 15%, rgba(254, 249, 195, 0.5) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, rgba(254, 240, 138, 0.25) 0px, transparent 50%),
+    #f7f3eb;
+}
+
+.pastel-glass-card {
+  background: rgba(255, 253, 250, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid #dfd5c3;
+  box-shadow: 0 10px 25px -5px rgba(168, 153, 128, 0.12);
+}
+
+.pastel-glass-card:hover {
+  border-color: #ccbea5;
+  box-shadow: 0 14px 30px -4px rgba(168, 153, 128, 0.18);
+}
+
+/* Gentle Pastel Yellow Primary Button */
+.pastel-gradient-btn {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 45%, #fef08a 100%);
+  color: #713f12;
+  font-weight: 700;
+  border: 1px solid #fde68a;
+  box-shadow: 0 3px 12px rgba(253, 230, 138, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pastel-gradient-btn:hover {
+  background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+  border-color: #fcd34d;
+  box-shadow: 0 4px 16px rgba(253, 230, 138, 0.55);
+  transform: translateY(-1px);
+}
+
+.pastel-gradient-btn:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+.pastel-pill-active {
+  background: #fef9c3;
+  color: #713f12;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+/* Custom Warm Soft Shadow System */
 .shadow-soft {
-  box-shadow: 0px 4px 20px rgba(162, 210, 255, 0.15);
+  box-shadow: 0px 4px 20px rgba(120, 113, 108, 0.08);
 }
 
 .shadow-soft-lg {
-  box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.08);
-}
-
-.shadow-soft-hover:hover {
-  box-shadow: 0px 8px 24px rgba(48, 98, 138, 0.18);
+  box-shadow: 0px 12px 32px rgba(120, 113, 108, 0.12);
 }
 
 /* Hide scrollbar for clean category tabs */
@@ -54,7 +111,7 @@
   scrollbar-width: none;
 }
 
-/* Custom scrollbar for table and cart */
+/* Custom warm scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -63,11 +120,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ede7df;
+  background: #dfd5c3;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c1c7cf;
+  background: #ccbea5;
 }
 
 /* Print Styles for Receipts */

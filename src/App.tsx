@@ -5,6 +5,7 @@ import { TopNavbar } from './components/TopNavbar';
 import { ToastContainer } from './components/ToastContainer';
 import { PaymentModal } from './components/modals/PaymentModal';
 import { ReceiptModal } from './components/modals/ReceiptModal';
+import { SmartAssistantDrawer } from './components/common/SmartAssistantDrawer';
 
 import { KasirScreen } from './components/screens/KasirScreen';
 import { DashboardScreen } from './components/screens/DashboardScreen';
@@ -16,7 +17,7 @@ import { LaporanScreen } from './components/screens/LaporanScreen';
 import { PengaturanScreen } from './components/screens/PengaturanScreen';
 
 const MainLayout: React.FC = () => {
-  const { currentScreen } = usePOS();
+  const { currentScreen, isAssistantOpen, setIsAssistantOpen } = usePOS();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const renderActiveScreen = () => {
@@ -43,7 +44,7 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fff9f0] text-[#1d1b16] flex">
+    <div className="min-h-screen pastel-mesh-bg text-[#1e293b] flex relative selection:bg-[#cbd5e1] selection:text-[#0f172a]">
       {/* Sidebar Navigation */}
       <Sidebar
         mobileOpen={mobileSidebarOpen}
@@ -61,10 +62,14 @@ const MainLayout: React.FC = () => {
         </main>
       </div>
 
-      {/* Global Modals & Notifications */}
+      {/* Global Modals & Smart AI Drawer */}
       <ToastContainer />
       <PaymentModal />
       <ReceiptModal />
+      <SmartAssistantDrawer
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+      />
     </div>
   );
 };
@@ -76,4 +81,3 @@ export default function App() {
     </POSProvider>
   );
 }
-

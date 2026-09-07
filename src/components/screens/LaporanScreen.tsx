@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { usePOS } from '../../context/POSContext';
 
 export const LaporanScreen: React.FC = () => {
-  const { transactions, products, categories, showToast } = usePOS();
+  const { transactions, showToast } = usePOS();
   const [reportPeriod, setReportPeriod] = useState<'bulan_ini' | 'minggu_ini' | 'hari_ini'>('bulan_ini');
 
   const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
@@ -14,9 +14,9 @@ export const LaporanScreen: React.FC = () => {
 
   // Payment Breakdown
   const paymentBreakdown = [
-    { method: 'QRIS Dinamis', count: 124, percentage: 48, color: 'bg-[#30628a]', text: 'text-[#30628a]' },
-    { method: 'Uang Tunai (Cash)', count: 82, percentage: 32, color: 'bg-emerald-600', text: 'text-emerald-700' },
-    { method: 'Kartu Debit/Kredit', count: 52, percentage: 20, color: 'bg-amber-500', text: 'text-amber-700' },
+    { method: 'QRIS Dinamis', count: 124, percentage: 48, color: 'bg-[#fef08a]', text: 'text-[#713f12]' },
+    { method: 'Uang Tunai (Cash)', count: 82, percentage: 32, color: 'bg-[#fef9c3]', text: 'text-[#713f12]' },
+    { method: 'Kartu Debit/Kredit', count: 52, percentage: 20, color: 'bg-[#faeed6]', text: 'text-[#713f12]' },
   ];
 
   // Category Breakdown
@@ -63,20 +63,22 @@ export const LaporanScreen: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#1d1b16] tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#292524] tracking-tight">
             Laporan & Analisis Penjualan
           </h1>
-          <p className="text-sm text-[#41474e] mt-1">
+          <p className="text-sm text-[#78716c] mt-1">
             Analisis tren pendapatan, distribusi metode pembayaran, dan kinerja kategori produk.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="bg-[#f3ede4] p-1 rounded-full border border-[#ede7df] flex items-center">
+          <div className="bg-[#f7f3eb] p-1 rounded-full border border-[#ede5d8] flex items-center">
             <button
               onClick={() => setReportPeriod('hari_ini')}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                reportPeriod === 'hari_ini' ? 'bg-[#30628a] text-white shadow-xs' : 'text-[#41474e]'
+                reportPeriod === 'hari_ini'
+                  ? 'bg-[#fef9c3] text-[#713f12] shadow-2xs border border-[#fde68a]'
+                  : 'text-[#78716c] hover:text-[#292524]'
               }`}
             >
               Hari Ini
@@ -84,7 +86,9 @@ export const LaporanScreen: React.FC = () => {
             <button
               onClick={() => setReportPeriod('minggu_ini')}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                reportPeriod === 'minggu_ini' ? 'bg-[#30628a] text-white shadow-xs' : 'text-[#41474e]'
+                reportPeriod === 'minggu_ini'
+                  ? 'bg-[#fef9c3] text-[#713f12] shadow-2xs border border-[#fde68a]'
+                  : 'text-[#78716c] hover:text-[#292524]'
               }`}
             >
               Minggu Ini
@@ -92,7 +96,9 @@ export const LaporanScreen: React.FC = () => {
             <button
               onClick={() => setReportPeriod('bulan_ini')}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                reportPeriod === 'bulan_ini' ? 'bg-[#30628a] text-white shadow-xs' : 'text-[#41474e]'
+                reportPeriod === 'bulan_ini'
+                  ? 'bg-[#fef9c3] text-[#713f12] shadow-2xs border border-[#fde68a]'
+                  : 'text-[#78716c] hover:text-[#292524]'
               }`}
             >
               Bulan Ini
@@ -101,7 +107,7 @@ export const LaporanScreen: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="px-4 py-2 rounded-full bg-white hover:bg-[#ede7df] text-[#30628a] border border-[#ede7df] font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
+            className="px-4 py-2 rounded-full bg-[#fffdfa] hover:bg-[#fef9c3] text-[#713f12] border border-[#ede5d8] font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">file_download</span>
             <span>Ekspor CSV</span>
@@ -111,49 +117,49 @@ export const LaporanScreen: React.FC = () => {
 
       {/* 4 Financial Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white rounded-3xl p-5 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)]">
-          <span className="text-xs font-semibold text-[#72787f] uppercase">Total Omset Kotor</span>
-          <h3 className="text-2xl font-bold text-[#1d1b16] mt-2">{formatRupiah(totalOmset)}</h3>
-          <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center gap-1">
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-5 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)]">
+          <span className="text-xs font-bold text-[#78716c] uppercase">Total Omset Kotor</span>
+          <h3 className="text-2xl font-extrabold text-[#713f12] mt-2">{formatRupiah(totalOmset)}</h3>
+          <p className="text-xs font-bold text-[#713f12] mt-2 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">trending_up</span> +18.2% vs periode lalu
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl p-5 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)]">
-          <span className="text-xs font-semibold text-[#72787f] uppercase">Estimasi Laba Kotor (42%)</span>
-          <h3 className="text-2xl font-bold text-[#30628a] mt-2">{formatRupiah(estimatedGrossProfit)}</h3>
-          <p className="text-xs text-[#72787f] mt-2">Margin keuntungan rata-rata</p>
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-5 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)]">
+          <span className="text-xs font-bold text-[#78716c] uppercase">Estimasi Laba Kotor (42%)</span>
+          <h3 className="text-2xl font-extrabold text-[#292524] mt-2">{formatRupiah(estimatedGrossProfit)}</h3>
+          <p className="text-xs text-[#78716c] mt-2">Margin keuntungan rata-rata</p>
         </div>
 
-        <div className="bg-white rounded-3xl p-5 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)]">
-          <span className="text-xs font-semibold text-[#72787f] uppercase">Jumlah Transaksi</span>
-          <h3 className="text-2xl font-bold text-[#1d1b16] mt-2">{totalTrxCount} Faktur</h3>
-          <p className="text-xs text-emerald-700 font-semibold mt-2">Tingkat keberhasilan 99.4%</p>
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-5 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)]">
+          <span className="text-xs font-bold text-[#78716c] uppercase">Jumlah Transaksi</span>
+          <h3 className="text-2xl font-extrabold text-[#292524] mt-2">{totalTrxCount} Faktur</h3>
+          <p className="text-xs text-[#713f12] font-semibold mt-2">Tingkat keberhasilan 99.4%</p>
         </div>
 
-        <div className="bg-white rounded-3xl p-5 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)]">
-          <span className="text-xs font-semibold text-[#72787f] uppercase">Rata-rata Belanja (AOV)</span>
-          <h3 className="text-2xl font-bold text-[#1d1b16] mt-2">{formatRupiah(avgBasketSize)}</h3>
-          <p className="text-xs text-[#72787f] mt-2">Per struk transaksi</p>
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-5 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)]">
+          <span className="text-xs font-bold text-[#78716c] uppercase">Rata-rata Belanja (AOV)</span>
+          <h3 className="text-2xl font-extrabold text-[#292524] mt-2">{formatRupiah(avgBasketSize)}</h3>
+          <p className="text-xs text-[#78716c] mt-2">Per struk transaksi</p>
         </div>
       </div>
 
       {/* Analytics Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Methods Breakdown */}
-        <div className="bg-white rounded-3xl p-6 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)] flex flex-col justify-between">
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-6 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)] flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[#1d1b16]">Distribusi Pembayaran</h3>
-            <p className="text-xs text-[#72787f] mb-6">Metode pembayaran yang paling digemari pelanggan</p>
+            <h3 className="text-lg font-bold text-[#292524]">Distribusi Pembayaran</h3>
+            <p className="text-xs text-[#78716c] mb-6">Metode pembayaran yang paling digemari pelanggan</p>
 
             <div className="space-y-4">
               {paymentBreakdown.map((item, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-[#1d1b16]">{item.method}</span>
+                    <span className="text-[#292524]">{item.method}</span>
                     <span className={item.text}>{item.percentage}% ({item.count} trx)</span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-[#f3ede4] overflow-hidden">
+                  <div className="w-full h-3 rounded-full bg-[#f7f3eb] overflow-hidden border border-[#ede5d8]">
                     <div
                       style={{ width: `${item.percentage}%` }}
                       className={`h-full ${item.color} rounded-full transition-all duration-500`}
@@ -164,30 +170,30 @@ export const LaporanScreen: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3.5 mt-6 rounded-2xl bg-[#f9f3ea] border border-[#ede7df] text-xs text-[#41474e]">
+          <div className="p-3.5 mt-6 rounded-2xl bg-[#fdfbf7] border border-[#ede5d8] text-xs text-[#57534e]">
             <strong>Insight:</strong> Transaksi digital (QRIS & Kartu) mencakup <strong>68%</strong> dari total penerimaan outlet.
           </div>
         </div>
 
         {/* Category Contribution */}
-        <div className="bg-white rounded-3xl p-6 border border-[#ede7df] shadow-[0px_4px_20px_rgba(162,210,255,0.12)] flex flex-col justify-between">
+        <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-6 border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.1)] flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[#1d1b16]">Kontribusi Kategori Penjualan</h3>
-            <p className="text-xs text-[#72787f] mb-6">Porsi omset berdasarkan kategori menu</p>
+            <h3 className="text-lg font-bold text-[#292524]">Kontribusi Kategori Penjualan</h3>
+            <p className="text-xs text-[#78716c] mb-6">Porsi omset berdasarkan kategori menu</p>
 
             <div className="space-y-4">
               {categoryStats.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-[#f9f3ea] border border-[#ede7df]">
+                <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-[#fdfbf7] border border-[#ede5d8]">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-[#bee1ff] text-[#30628a] font-bold flex items-center justify-center text-xs">
+                    <div className="w-8 h-8 rounded-xl bg-[#fef9c3] text-[#713f12] font-extrabold flex items-center justify-center text-xs border border-[#fde68a]">
                       {item.percentage}%
                     </div>
                     <div>
-                      <h4 className="font-bold text-xs text-[#1d1b16]">{item.name}</h4>
-                      <p className="text-[11px] text-[#72787f]">{formatRupiah(item.revenue)}</p>
+                      <h4 className="font-bold text-xs text-[#292524]">{item.name}</h4>
+                      <p className="text-[11px] text-[#78716c]">{formatRupiah(item.revenue)}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-[#30628a]">
+                  <span className="text-xs font-bold text-[#713f12]">
                     Porsi #{idx + 1}
                   </span>
                 </div>
@@ -195,7 +201,7 @@ export const LaporanScreen: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-3.5 mt-6 rounded-2xl bg-[#bee1ff]/30 border border-[#bee1ff] text-xs text-[#001e2f]">
+          <div className="p-3.5 mt-6 rounded-2xl bg-[#fdfbf7] border border-[#ede5d8] text-xs text-[#57534e]">
             Kategori <strong>Minuman Kopi</strong> merupakan kontributor terbesar dengan 42% pendapatan.
           </div>
         </div>
