@@ -83,6 +83,41 @@ export interface StockLog {
   operator: string;
 }
 
+export type StoreOperationalStatus = 'BUKA' | 'SEGERA_TUTUP' | 'TUTUP';
+
+export interface HeldOrder {
+  id: string;
+  createdAt: string;
+  timestamp: number;
+  customerName: string;
+  tableNumber: string;
+  orderType: 'Dine In' | 'Take Away';
+  items: CartItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  note?: string;
+}
+
+export interface CashierShift {
+  id: string;
+  cashierId: string;
+  cashierName: string;
+  startTime: string;
+  startTimestamp: number;
+  startingCash: number;
+  endTime?: string;
+  endTimestamp?: number;
+  totalCashSales: number;
+  totalNonCashSales: number;
+  totalTransactions: number;
+  expectedCash: number;
+  actualCashEnding?: number;
+  difference?: number;
+  status: 'OPEN' | 'CLOSED';
+  closingNotes?: string;
+}
+
 export interface StoreSettings {
   storeName: string;
   branchName: string;
@@ -96,6 +131,14 @@ export interface StoreSettings {
   };
   printReceiptAutomatically: boolean;
   defaultDiscount: number;
+  
+  // Enterprise Store Hours & Operational Status
+  openTime: string;
+  closeTime: string;
+  closingWarningMinutes: number;
+  autoStatusByHours: boolean;
+  manualStatus: StoreOperationalStatus;
+  closingNoticeText?: string;
 }
 
 export interface CashierAccount {
@@ -104,4 +147,19 @@ export interface CashierAccount {
   role: 'Manager' | 'Kasir';
   avatarUrl: string;
   active: boolean;
+}
+
+export type EyeCareTheme = 'warm-beige' | 'matcha-sage' | 'slate-charcoal' | 'nordic-sky';
+export type SidebarLayoutMode = 'expanded' | 'compact' | 'hidden';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  password?: string;
+  fullName: string;
+  role: 'Super Admin' | 'Manager' | 'Kasir';
+  email: string;
+  phone?: string;
+  avatarUrl: string;
+  createdAt: string;
 }

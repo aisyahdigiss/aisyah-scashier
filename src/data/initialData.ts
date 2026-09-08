@@ -1,4 +1,4 @@
-import { Product, Category, Transaction, StoreSettings, CashierAccount } from '../types';
+import { Product, Category, Transaction, StoreSettings, CashierAccount, AuthUser } from '../types';
 
 export const INITIAL_CATEGORIES: Category[] = [
   {
@@ -323,12 +323,63 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
 ];
 
+export const STORE_PHOTO_PRESETS = [
+  {
+    id: 'store-aura',
+    name: 'Aura Boutique Store',
+    category: 'Boutique & Retail',
+    url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTqXWEhG0idr4CN5tc9miEGC7fS2kDXVFVJhf7UDeob5RTIneOAp0jwK1VD8ibpDxbPHfQLTbE26H9gPer9hxVgBlP_oS5w4F8YiB2ZSnydDol8lySa2n86q4jOWxfhYWIo_hgcj4pFet0BBo4izTmQF1JU7o26At-cRbtKWCK54WJArqTCbV-fIgnPfC1r3OgpkYdwF6aght1oSM1pntmXPNAZgsImvrdibzrURojjPbcKbch5nfanA',
+  },
+  {
+    id: 'store-coffee',
+    name: 'Artisan Coffee Roaster',
+    category: 'Coffee & Cafe',
+    url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-bakery',
+    name: 'Golden Wheat Bakery',
+    category: 'Bakery & Pastry',
+    url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-eatery',
+    name: 'Modern Casual Eatery',
+    category: 'Restoran & Bistro',
+    url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-minimal',
+    name: 'Minimalist Concept Shop',
+    category: 'Lifestyle Store',
+    url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-mart',
+    name: 'Fresh Corner Deli & Mart',
+    category: 'Minimarket & Retail',
+    url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-cozy',
+    name: 'Botanical & Flower Bar',
+    category: 'Florist & Gift',
+    url: 'https://images.unsplash.com/photo-1534766555764-ce878a5e3a2b?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'store-retro',
+    name: 'Vintage Books & Cafe',
+    category: 'Bookstore & Cafe',
+    url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=400&q=80',
+  },
+];
+
 export const INITIAL_SETTINGS: StoreSettings = {
   storeName: 'Kasirku Store',
   branchName: 'Cabang Utama',
   phone: '0812-3456-7890',
   address: 'Jl. Jendral Sudirman No. 123, Jakarta Pusat',
-  logoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTqXWEhG0idr4CN5tc9miEGC7fS2kDXVFVJhf7UDeob5RTIneOAp0jwK1VD8ibpDxbPHfQLTbE26H9gPer9hxVgBlP_oS5w4F8YiB2ZSnydDol8lySa2n86q4jOWxfhYWIo_hgcj4pFet0BBo4izTmQF1JU7o26At-cRbtKWCK54WJArqTCbV-fIgnPfC1r3OgpkYdwF6aght1oSM1pntmXPNAZgsImvrdibzrURojjPbcKbch5nfanA',
+  logoUrl: STORE_PHOTO_PRESETS[0].url,
   paymentMethods: {
     qris: true,
     kartu: true,
@@ -336,6 +387,12 @@ export const INITIAL_SETTINGS: StoreSettings = {
   },
   printReceiptAutomatically: true,
   defaultDiscount: 0,
+  openTime: '08:00',
+  closeTime: '22:00',
+  closingWarningMinutes: 30,
+  autoStatusByHours: true,
+  manualStatus: 'BUKA',
+  closingNoticeText: 'Perhatian: Toko segera tutup pukul 22:00! Waktu Last Order sedang berlangsung, mohon selesaikan transaksi kasir & dapur.',
 };
 
 export const INITIAL_CASHIERS: CashierAccount[] = [
@@ -361,3 +418,156 @@ export const INITIAL_CASHIERS: CashierAccount[] = [
     active: false,
   },
 ];
+
+export const INITIAL_USERS: AuthUser[] = [
+  {
+    id: 'user-superadmin-1',
+    username: 'aisyahsya',
+    password: 'aisyahsyadec242025',
+    fullName: 'Aisyah Sya',
+    role: 'Super Admin',
+    email: 'aisyahdigiss@gmail.com',
+    phone: '0812-9988-7766',
+    avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd',
+    createdAt: '2026-09-01',
+  },
+  {
+    id: 'user-mgr-1',
+    username: 'siti_manager',
+    password: 'password123',
+    fullName: 'Siti Rahma',
+    role: 'Manager',
+    email: 'siti@kasirku.id',
+    phone: '0812-3456-7891',
+    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuALiv9Y4DPCMxhKvUngfdgBMaYa80aAPfMx9Zz-veyVg9zyjCNszgNLMoNl1Lg7yak00AgF9NQJNohmgABxEwJ4aM_6ezfPjmrfYp0hxTflD0NEyRy2kGGP4oetQlZQBUXBbBwaE5mdGdDuHzaQEvAEqfF5Nu4dOU09VATPB9nW6aj7e64CSB42odg9R6WPt8X0nujXDXGnkAS2Rj-Fg6q3597yg3LdM1Yhhrkiv5XTPORnYrE_m37L2w',
+    createdAt: '2026-09-02',
+  },
+  {
+    id: 'user-kasir-1',
+    username: 'andi_kasir',
+    password: 'password123',
+    fullName: 'Andi Pratama',
+    role: 'Kasir',
+    email: 'andi@kasirku.id',
+    phone: '0813-2233-4455',
+    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC11vXIThX3TR5KuZyFSiUYfwE4vKkRMxMMZq7F0ryBGcEoiGawA_XLgxQd5jGpkZs4xDe2mxsOjUm5j_lGHlgkiprrdR0MEtwcB849F47NIZaZ1T_V6PoWFBpv23aMXmAODkIp4lQBDkjQLgqk8f04of5M1HH7xIXPUPeUWhVnHkWH7M4wIEDTGAFAp4GG5Vy2z3K9v-VXK1fWREpKRX9yPnqMoOZLS-70rbZOtoU56o__Xr5PHYLZLA',
+    createdAt: '2026-09-03',
+  },
+];
+
+export interface CashierAvatarPreset {
+  id: string;
+  name: string;
+  role: string;
+  category: 'Ilustrasi' | 'Foto Asli';
+  url: string;
+}
+
+export const CASHIER_AVATAR_PRESETS: CashierAvatarPreset[] = [
+  {
+    id: 'avatar-aisyah',
+    name: 'Aisyah (Hijab Pastel)',
+    role: 'Super Admin',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd',
+  },
+  {
+    id: 'avatar-zahra',
+    name: 'Zahra (Barista Hijab)',
+    role: 'Kasir',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Zahra&backgroundColor=fef3c7',
+  },
+  {
+    id: 'avatar-maya',
+    name: 'Maya (Latte Art Specialist)',
+    role: 'Barista & Kasir',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Maya&backgroundColor=e0f2fe',
+  },
+  {
+    id: 'avatar-cindy',
+    name: 'Cindy (Kasir Ceria)',
+    role: 'Kasir',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Cindy&backgroundColor=fce7f3',
+  },
+  {
+    id: 'avatar-dian',
+    name: 'Dian (Store Manager)',
+    role: 'Manager',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Dian&backgroundColor=dcfce7',
+  },
+  {
+    id: 'avatar-kevin',
+    name: 'Kevin (Barista Kopi)',
+    role: 'Kasir',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Kevin&backgroundColor=bae6fd',
+  },
+  {
+    id: 'avatar-rizky',
+    name: 'Rizky (Head Barista)',
+    role: 'Manager',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Rizky&backgroundColor=fef9c3',
+  },
+  {
+    id: 'avatar-budi',
+    name: 'Budi (Senior Cashier)',
+    role: 'Kasir',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Budi&backgroundColor=ffedd5',
+  },
+  {
+    id: 'avatar-fajar',
+    name: 'Fajar (Inventory Lead)',
+    role: 'Supervisor',
+    category: 'Ilustrasi',
+    url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Fajar&backgroundColor=f3e8ff',
+  },
+  {
+    id: 'photo-barista-1',
+    name: 'Rina (Barista Senyum)',
+    role: 'Kasir',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'photo-manager-1',
+    name: 'Dewi (Manager Profesional)',
+    role: 'Manager',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'photo-barista-2',
+    name: 'Arif (Barista Cafe)',
+    role: 'Kasir',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'photo-barista-3',
+    name: 'Dimas (Kasir Toko)',
+    role: 'Kasir',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'photo-hijab-1',
+    name: 'Farah (Kasir Ramah)',
+    role: 'Kasir',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=300&q=80',
+  },
+  {
+    id: 'photo-owner-1',
+    name: 'Citra (Owner Cafe)',
+    role: 'Super Admin',
+    category: 'Foto Asli',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+  },
+];
+

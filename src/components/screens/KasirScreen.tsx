@@ -27,6 +27,17 @@ export const KasirScreen: React.FC = () => {
     tableNumber,
     setTableNumber,
     setIsAssistantOpen,
+    storeStatus,
+    settings,
+    setCurrentScreen,
+    heldOrders,
+    setIsHeldOrdersModalOpen,
+    holdCurrentCart,
+    currentShift,
+    setIsShiftModalOpen,
+    activeCashier,
+    currentUser,
+    openPhotoModal,
   } = usePOS();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
@@ -104,9 +115,166 @@ export const KasirScreen: React.FC = () => {
   return (
     <div className="flex flex-col xl:flex-row h-full gap-6 pb-24 xl:pb-0">
       {/* Left Area: Category Tabs & Products Grid */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 space-y-3">
+        {/* Store Closing Notice Banner */}
+        {storeStatus === 'SEGERA_TUTUP' && (
+          <div className="p-3.5 rounded-2xl bg-[#fef9c3] border border-[#fde68a] text-[#713f12] flex items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-300">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="material-symbols-outlined text-[24px] text-amber-700 animate-bounce">
+                alarm_on
+              </span>
+              <div className="text-xs min-w-0">
+                <span className="font-extrabold uppercase tracking-wide">
+                  Peringatan: Toko Segera Tutup (Jam {settings.closeTime || '22:00'}):
+                </span>{' '}
+                <span className="font-medium text-[#854d0e]">
+                  {settings.closingNoticeText || 'Pemesanan terakhir (last order) sedang berlangsung.'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setCurrentScreen('pengaturan')}
+              className="px-3 py-1 bg-white hover:bg-[#fffbeb] text-[#713f12] text-xs font-bold rounded-xl border border-[#fde68a] shadow-xs shrink-0 whitespace-nowrap"
+            >
+              Ubah Jam
+            </button>
+          </div>
+        )}
+
+        {storeStatus === 'TUTUP' && (
+          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between gap-3 shadow-2xs animate-in fade-in duration-300">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="material-symbols-outlined text-[24px] text-rose-600">
+                storefront
+              </span>
+              <div className="text-xs min-w-0">
+                <span className="font-extrabold uppercase tracking-wide">Outlet Sedang Tutup:</span>{' '}
+                <span className="font-medium">
+                  Jam buka outlet ({settings.openTime || '08:00'} - {settings.closeTime || '22:00'}). Kasir tetap dapat memproses transaksi manual bila diperlukan.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setCurrentScreen('pengaturan')}
+              className="px-3 py-1 bg-white hover:bg-rose-100 text-rose-800 text-xs font-bold rounded-xl border border-rose-300 shadow-xs shrink-0 whitespace-nowrap"
+            >
+              Buka Toko
+            </button>
+          </div>
+        )}
+
+        {/* Enterprise Cashier Bar (High Contrast, Unified Kasir & Login Sync, Quick Photo Change) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#cbd5e1] shadow-xs">
+          {/* Active Cashier & Profile Section */}
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Cashier Avatar with Camera Action Button */}
+            <div className="relative group/avatar shrink-0">
+              <img
+                src={currentUser?.avatarUrl || activeCashier.avatarUrl}
+                alt={activeCashier.name}
+                className="w-10 h-10 rounded-xl object-cover border-2 border-[#94a3b8] shadow-xs"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
+                }}
+              />
+              <button
+                type="button"
+                onClick={openPhotoModal}
+                title="Klik untuk ubah foto profil kasir"
+                aria-label="Ubah foto profil kasir"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#0284c7] hover:bg-[#0369a1] text-white flex items-center justify-center shadow-xs border border-white transition-transform group-hover/avatar:scale-110 active:scale-90"
+              >
+                <span className="material-symbols-outlined text-[11px]">photo_camera</span>
+              </button>
+            </div>
+
+            {/* Cashier Name & Role */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#475569]">
+                  Kasir Bertugas
+                </span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#0284c7] text-white">
+                  {currentUser ? currentUser.role : activeCashier.role}
+                </span>
+                {currentUser?.username && (
+                  <span className="text-[10px] font-mono text-[#64748b] hidden sm:inline">
+                    @{currentUser.username}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-extrabold text-[#0f172a] truncate leading-tight mt-0.5">
+                {currentUser ? currentUser.fullName : activeCashier.name}
+              </p>
+            </div>
+
+            {/* Quick Change Photo Button */}
+            <button
+              type="button"
+              onClick={openPhotoModal}
+              className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] text-xs font-bold border border-[#cbd5e1] transition-all active:scale-95 shadow-2xs"
+              title="Ubah foto profil kasir yang sedang login"
+            >
+              <span className="material-symbols-outlined text-[14px] text-[#0284c7]">add_a_photo</span>
+              <span>Ubah Foto</span>
+            </button>
+          </div>
+
+          {/* Quick Shift & Status Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Shift & Drawer Button */}
+            <button
+              type="button"
+              onClick={() => setIsShiftModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-[#f8fafc] hover:bg-white text-[#0f172a] text-xs font-bold border border-[#cbd5e1] hover:border-[#94a3b8] transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+              title="Buka detail shift & laci kasir"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#0284c7]">point_of_sale</span>
+              <span>Laci Kas:</span>
+              <span className="text-[11px] font-mono font-bold text-[#0369a1] bg-[#e0f2fe] px-1.5 py-0.2 rounded border border-[#bae6fd]">
+                Rp {(currentShift?.expectedCash || 0).toLocaleString('id-ID')}
+              </span>
+            </button>
+
+            {/* Held Orders Pill Button */}
+            <button
+              type="button"
+              onClick={() => setIsHeldOrdersModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#fffbeb] text-[#78350f] text-xs font-bold border border-[#cbd5e1] hover:border-[#fde68a] transition-all flex items-center gap-1.5 shadow-2xs active:scale-95"
+              title="Lihat pesanan yang diparkir / pending"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#d97706]">pause_circle</span>
+              <span>Parkir</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-[#fef9c3] text-[#713f12] border border-[#fde68a]">
+                {heldOrders.length}
+              </span>
+            </button>
+
+            {/* Operational Hours Indicator */}
+            <div className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-[#f8fafc] border border-[#cbd5e1] text-[#334155]">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  storeStatus === 'BUKA'
+                    ? 'bg-emerald-500'
+                    : storeStatus === 'SEGERA_TUTUP'
+                    ? 'bg-amber-500 animate-ping'
+                    : 'bg-rose-500'
+                }`}
+              />
+              <span className="text-[11px]">
+                {storeStatus === 'BUKA'
+                  ? `Buka (${settings.openTime} - ${settings.closeTime})`
+                  : storeStatus === 'SEGERA_TUTUP'
+                  ? `Segera Tutup (${settings.closeTime})`
+                  : 'Outlet Tutup'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Category Pills Bar with Pastel Yellow & Warm Beige Palette */}
-        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1 mb-4">
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1">
           <button
             onClick={() => setSelectedCategory('Semua')}
             className={`px-5 py-2.5 rounded-full text-sm font-extrabold whitespace-nowrap transition-all duration-200 active:scale-95 ${
@@ -339,13 +507,24 @@ export const KasirScreen: React.FC = () => {
               <span>Bundle AI</span>
             </button>
             {cart.length > 0 && (
-              <button
-                onClick={clearCart}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716c] hover:bg-[#fef9c3] hover:text-[#713f12] transition-colors"
-                title="Kosongkan Keranjang"
-              >
-                <span className="material-symbols-outlined text-[18px]">delete_outline</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={holdCurrentCart}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#fdfbf7] hover:bg-[#fef9c3] text-[#713f12] border border-[#ede5d8] hover:border-[#fde68a] transition-all flex items-center gap-1 shadow-2xs active:scale-95"
+                  title="Parkir pesanan ini dan layani pelanggan lain terlebih dahulu"
+                >
+                  <span className="material-symbols-outlined text-[14px]">pause</span>
+                  <span>Hold Bill</span>
+                </button>
+                <button
+                  onClick={clearCart}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#78716c] hover:bg-[#fef9c3] hover:text-[#713f12] transition-colors"
+                  title="Kosongkan Keranjang"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete_outline</span>
+                </button>
+              </>
             )}
           </div>
         </div>
