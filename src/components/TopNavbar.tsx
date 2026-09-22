@@ -24,12 +24,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
     users,
     logout,
     switchUser,
+    openPhotoModal,
     sidebarMode,
     toggleSidebarMode,
     zenFocusMode,
     toggleZenFocusMode,
     eyeCareTheme,
     antiGlareFilter,
+    dbStatus,
+    syncWithTurso,
   } = usePOS();
 
   const [showCashierMenu, setShowCashierMenu] = useState(false);
@@ -194,6 +197,32 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
             )}
           </button>
 
+          {/* Turso Cloud Database Status Badge */}
+          <button
+            onClick={() => syncWithTurso()}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-2xs ${
+              dbStatus === 'connected'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                : dbStatus === 'syncing'
+                ? 'bg-amber-50 text-amber-800 border-amber-200 animate-pulse'
+                : 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+            }`}
+            title={`Turso Cloud DB: ${
+              dbStatus === 'connected'
+                ? 'Terhubung ke asyacashierdb-aisyahdigiss (Klik untuk sinkronisasi)'
+                : dbStatus === 'syncing'
+                ? 'Sedang menyinkronkan data...'
+                : 'Offline - menggunakan penyimpanan lokal (Klik untuk hubungkan ulang)'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px] text-emerald-600">
+              {dbStatus === 'connected' ? 'cloud_done' : dbStatus === 'syncing' ? 'sync' : 'cloud_off'}
+            </span>
+            <span className="text-[11px] font-medium tracking-tight">
+              {dbStatus === 'connected' ? 'Turso: Online' : dbStatus === 'syncing' ? 'Sync Turso...' : 'Turso: Offline'}
+            </span>
+          </button>
+
           {/* Real-time Clock Badge */}
           <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fcfbf9] text-[#57534e] text-xs font-mono font-bold border border-[#ede7db]">
             <span className="material-symbols-outlined text-[16px] text-[#78716c]">schedule</span>
@@ -267,33 +296,40 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
             )}
           </div>
 
-          {/* User Account / Cashier Switcher */}
+          {/* User Account / Cashier Switcher - High Contrast */}
           <div className="relative">
             <button
               onClick={() => setShowCashierMenu(!showCashierMenu)}
-              className="flex items-center gap-2 p-1 pl-1.5 rounded-xl bg-[#fcfbf9] hover:bg-stone-100 border border-[#ede7db] transition-colors group"
-              title="Kelola Akun & Login"
+              className="flex items-center gap-2 p-1.5 pl-2 rounded-xl bg-white hover:bg-stone-50 border-2 border-[#94a3b8] hover:border-[#0284c7] transition-all group shadow-xs"
+              title="Kelola Akun & Ubah Foto Profil"
             >
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#bae6fd] bg-white shrink-0 shadow-2xs">
-                <img
-                  src={currentUser ? currentUser.avatarUrl : activeCashier.avatarUrl}
-                  alt={currentUser ? currentUser.fullName : activeCashier.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
-                  }}
-                />
-              </div>
-              <div className="hidden lg:block text-left pr-1">
-                <p className="text-xs font-bold text-[#1c1917] leading-tight truncate max-w-[110px]">
-                  {currentUser ? currentUser.fullName : activeCashier.name}
-                </p>
-                <span className="inline-block text-[9px] font-bold px-1 py-0.2 rounded bg-[#e0f2fe] text-[#0369a1] leading-none whitespace-nowrap">
-                  {currentUser ? currentUser.role : activeCashier.role}
+              <div className="relative">
+                <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#0284c7] bg-white shrink-0 shadow-2xs">
+                  <img
+                    src={currentUser ? currentUser.avatarUrl : activeCashier.avatarUrl}
+                    alt={currentUser ? currentUser.fullName : activeCashier.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
+                    }}
+                  />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#0284c7] text-white flex items-center justify-center text-[8px] border border-white">
+                  ✎
                 </span>
               </div>
-              <span className="material-symbols-outlined text-[#78716c] text-sm pr-1">
+              <div className="hidden lg:block text-left pr-1">
+                <p className="text-xs font-black text-[#0f172a] leading-tight truncate max-w-[120px]">
+                  {currentUser ? currentUser.fullName : activeCashier.name}
+                </p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="inline-block text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-[#0284c7] text-white leading-none whitespace-nowrap">
+                    {currentUser ? currentUser.role : activeCashier.role}
+                  </span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-[#334155] text-sm pr-0.5 group-hover:text-[#0284c7]">
                 arrow_drop_down
               </span>
             </button>
@@ -302,36 +338,71 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
             {showCashierMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowCashierMenu(false)} />
-                <div className="absolute right-0 top-12 w-72 bg-white rounded-2xl shadow-xl border border-[#ede7db] py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border-2 border-[#cbd5e1] py-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   {/* Active User Header */}
-                  <div className="px-4 py-3 border-b border-[#ede7db] bg-[#fcfbf9]">
-                    <p className="text-[10px] font-bold text-[#0369a1] uppercase tracking-wider">
-                      Akun Sedang Masuk
-                    </p>
-                    <p className="font-bold text-[#1c1917] text-sm mt-0.5">
-                      {currentUser ? currentUser.fullName : activeCashier.name}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] rounded border border-[#bae6fd]">
+                  <div className="px-4 py-3 border-b border-stone-200 bg-[#f8fafc]">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black text-[#0284c7] uppercase tracking-wider">
+                        Kasir & Akun Aktif
+                      </p>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0284c7] text-white">
                         {currentUser ? currentUser.role : activeCashier.role}
                       </span>
-                      {currentUser?.username && (
-                        <span className="text-[11px] font-mono text-[#78716c]">
-                          @{currentUser.username}
-                        </span>
-                      )}
                     </div>
-                    {currentUser?.email && (
-                      <p className="text-[10px] text-[#78716c] truncate mt-1">
-                        {currentUser.email}
-                      </p>
-                    )}
+
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="relative group/avatar cursor-pointer" onClick={() => { setShowCashierMenu(false); openPhotoModal(); }}>
+                        <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-[#0284c7] bg-white shadow-xs">
+                          <img
+                            src={currentUser ? currentUser.avatarUrl : activeCashier.avatarUrl}
+                            alt="Foto Profil"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
+                            }}
+                          />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#0284c7] text-white flex items-center justify-center text-[10px] border border-white shadow-xs">
+                          <span className="material-symbols-outlined text-[12px]">photo_camera</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold text-[#0f172a] text-sm leading-tight truncate">
+                          {currentUser ? currentUser.fullName : activeCashier.name}
+                        </p>
+                        {currentUser?.username && (
+                          <p className="text-[11px] font-mono font-bold text-[#475569] mt-0.5">
+                            @{currentUser.username}
+                          </p>
+                        )}
+                        {currentUser?.email && (
+                          <p className="text-[10px] text-[#64748b] truncate">
+                            {currentUser.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Change Photo Quick Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCashierMenu(false);
+                        openPhotoModal();
+                      }}
+                      className="w-full mt-3 py-2 px-3 rounded-xl bg-[#e0f2fe] hover:bg-[#bae6fd] text-[#0369a1] text-xs font-black flex items-center justify-center gap-1.5 transition-all border border-[#7dd3fc] shadow-2xs active:scale-98"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                      <span>Ubah Foto Profil Kasir</span>
+                    </button>
                   </div>
 
                   {/* Switchable Users List */}
                   <div className="px-3 py-2 max-h-44 overflow-y-auto">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#78716c] px-2 py-1">
-                      Beralih Pengguna
+                    <p className="text-[10px] font-black uppercase tracking-wider text-[#475569] px-2 py-1">
+                      Beralih Pengguna / Kasir
                     </p>
                     {users.map((u) => (
                       <button
@@ -340,28 +411,28 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                           switchUser(u.id);
                           setShowCashierMenu(false);
                         }}
-                        className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left text-xs transition-colors ${
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs transition-colors mb-1 ${
                           currentUser?.id === u.id
-                            ? 'bg-[#e0f2fe] font-bold text-[#0369a1]'
-                            : 'hover:bg-[#fcfbf9] text-[#1c1917]'
+                            ? 'bg-[#f0f9ff] font-extrabold text-[#0369a1] border border-[#bae6fd]'
+                            : 'hover:bg-stone-100 text-[#0f172a]'
                         }`}
                       >
                         <img
                           src={u.avatarUrl}
                           alt={u.fullName}
-                          className="w-7 h-7 rounded-full object-cover border border-[#ede7db]"
+                          className="w-7 h-7 rounded-lg object-cover border border-stone-300"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
                               'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
                           }}
                         />
                         <div className="flex-1 truncate">
-                          <p className="leading-tight truncate">{u.fullName}</p>
-                          <span className="text-[10px] text-[#78716c]">{u.role}</span>
+                          <p className="leading-tight font-bold truncate text-[#0f172a]">{u.fullName}</p>
+                          <span className="text-[10px] text-[#64748b] font-medium">{u.role}</span>
                         </div>
                         {currentUser?.id === u.id && (
-                          <span className="material-symbols-outlined text-[16px] text-[#0284c7]">
-                            check
+                          <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
+                            check_circle
                           </span>
                         )}
                       </button>
@@ -369,13 +440,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="px-3 pt-2 mt-1 border-t border-[#ede7db] space-y-1.5">
+                  <div className="px-3 pt-2 mt-1 border-t border-stone-200 space-y-1.5">
                     <button
                       onClick={() => {
                         setCurrentScreen('pengaturan');
                         setShowCashierMenu(false);
                       }}
-                      className="w-full py-2 px-3 rounded-lg bg-[#fcfbf9] hover:bg-stone-100 text-[#57534e] text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-[#ede7db]"
+                      className="w-full py-2 px-3 rounded-xl bg-[#f8fafc] hover:bg-stone-100 text-[#334155] text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all border border-stone-300"
                     >
                       <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
                       <span>Pengaturan Toko & Kasir</span>
@@ -386,7 +457,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                         setShowCashierMenu(false);
                         logout();
                       }}
-                      className="w-full py-2 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border border-rose-200"
+                      className="w-full py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all border border-rose-300"
                     >
                       <span className="material-symbols-outlined text-[16px]">logout</span>
                       <span>Keluar (Logout) / Ganti Akun</span>

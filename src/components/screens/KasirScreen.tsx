@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePOS } from '../../context/POSContext';
 import { Product } from '../../types';
+import { BarcodeScannerModal } from '../modals/BarcodeScannerModal';
 
 export const KasirScreen: React.FC = () => {
   const {
@@ -38,14 +39,67 @@ export const KasirScreen: React.FC = () => {
     activeCashier,
     currentUser,
     openPhotoModal,
+    isBarcodeModalOpen,
+    setIsBarcodeModalOpen,
+    openBarcodeModal,
+    scanBarcodeAndAddToCart,
   } = usePOS();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  const [quickBarcodeInput, setQuickBarcodeInput] = useState<string>('');
   const [cashReceived, setCashReceived] = useState<string>('50000');
   const [discountInputOpen, setDiscountInputOpen] = useState<boolean>(false);
   const [tempDiscount, setTempDiscount] = useState<string>('0');
   const [activeItemNoteModal, setActiveItemNoteModal] = useState<string | null>(null);
   const [activeNoteText, setActiveNoteText] = useState<string>('');
+
+  // Hardware USB/Bluetooth Barcode Scanner Keyboard Listener
+  useEffect(() => {
+    let barcodeBuffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Global shortcut F2 or Ctrl+B / Cmd+B to open barcode scanner modal
+      if (e.key === 'F2' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b')) {
+        e.preventDefault();
+        openBarcodeModal();
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      const currentTime = Date.now();
+      const diff = currentTime - lastKeyTime;
+      lastKeyTime = currentTime;
+
+      // Hardware barcode scanner sends characters in rapid burst (< 60ms) and terminates with Enter
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.length >= 3 && diff < 120) {
+          e.preventDefault();
+          scanBarcodeAndAddToCart(barcodeBuffer);
+          barcodeBuffer = '';
+        }
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (diff > 120 && !isInput) {
+          barcodeBuffer = ''; // reset buffer if slow manual typing
+        }
+        if (!isInput) {
+          barcodeBuffer += e.key;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [scanBarcodeAndAddToCart, openBarcodeModal]);
+
+  const handleQuickBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickBarcodeInput.trim()) return;
+    scanBarcodeAndAddToCart(quickBarcodeInput.trim());
+    setQuickBarcodeInput('');
+  };
 
   // Filter products by category and search
   const filteredProducts = useMemo(() => {
@@ -271,6 +325,61 @@ export const KasirScreen: React.FC = () => {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Quick Barcode Scanner Bar */}
+        <div className="bg-white/95 backdrop-blur-xs rounded-2xl p-2.5 sm:p-3 border border-[#cbd5e1] shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          {/* Left: Camera Scan Action Button & Hardware Status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={openBarcodeModal}
+              id="open-barcode-scanner-btn"
+              className="px-4 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-black text-xs shadow-xs flex items-center gap-2 transition-all duration-150 active:scale-95 group shrink-0"
+              title="Buka Kamera Barcode Scanner (Shortcut: F2 atau Ctrl+B)"
+            >
+              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                <span className="material-symbols-outlined text-[18px]">barcode_scanner</span>
+              </div>
+              <div className="text-left">
+                <span className="block leading-none">Scan Barcode (Kamera)</span>
+                <span className="text-[9px] text-white/80 font-mono font-medium">Shortcut [F2]</span>
+              </div>
+            </button>
+
+            {/* Live Hardware USB Scanner status badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-50 border border-stone-200 text-[#475569] text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Scanner USB / Gun Aktif</span>
+            </div>
+          </div>
+
+          {/* Right: Quick Barcode Input field */}
+          <form
+            onSubmit={handleQuickBarcodeSubmit}
+            className="flex items-center gap-1.5 flex-1 sm:max-w-xs"
+          >
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={quickBarcodeInput}
+                onChange={(e) => setQuickBarcodeInput(e.target.value)}
+                placeholder="Scan / ketik barcode..."
+                className="w-full pl-8 pr-3 py-1.5 bg-[#f8fafc] border border-[#cbd5e1] focus:border-[#0284c7] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#0f172a] outline-none transition-colors placeholder:text-stone-400 placeholder:font-sans"
+              />
+              <span className="material-symbols-outlined text-[16px] text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                qr_code
+              </span>
+            </div>
+            <button
+              type="submit"
+              disabled={!quickBarcodeInput.trim()}
+              className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-white text-xs font-bold transition-all shrink-0"
+              title="Masukkan barcode ke keranjang"
+            >
+              + Enter
+            </button>
+          </form>
         </div>
 
         {/* Category Pills Bar with Pastel Yellow & Warm Beige Palette */}
@@ -831,6 +940,13 @@ export const KasirScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Barcode Scanner Camera Modal */}
+      <BarcodeScannerModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
+        mode="cart"
+      />
     </div>
   );
 };

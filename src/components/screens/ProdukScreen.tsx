@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { usePOS } from '../../context/POSContext';
 import { Product } from '../../types';
+import { BarcodeScannerModal } from '../modals/BarcodeScannerModal';
 
 interface ProductModalProps {
   product?: Product | null;
@@ -20,6 +21,8 @@ export const ProdukScreen: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isBarcodeSearchOpen, setIsBarcodeSearchOpen] = useState<boolean>(false);
+  const [barcodeFilterQuery, setBarcodeFilterQuery] = useState<string>('');
 
   const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
 
@@ -29,10 +32,17 @@ export const ProdukScreen: React.FC = () => {
         selectedCategory === 'Semua' ||
         p.category.toLowerCase() === selectedCategory.toLowerCase();
 
+      const q = searchQuery.toLowerCase();
       const matchSearch =
         searchQuery === '' ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q));
+
+      const matchBarcodeFilter =
+        barcodeFilterQuery === '' ||
+        (p.barcode && p.barcode.toLowerCase() === barcodeFilterQuery.toLowerCase()) ||
+        p.sku.toLowerCase() === barcodeFilterQuery.toLowerCase();
 
       let matchStock = true;
       if (stockStatusFilter === 'Aman') {
@@ -43,9 +53,9 @@ export const ProdukScreen: React.FC = () => {
         matchStock = p.stock === 0;
       }
 
-      return matchCat && matchSearch && matchStock;
+      return matchCat && matchSearch && matchBarcodeFilter && matchStock;
     });
-  }, [products, selectedCategory, searchQuery, stockStatusFilter]);
+  }, [products, selectedCategory, searchQuery, barcodeFilterQuery, stockStatusFilter]);
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -70,14 +80,48 @@ export const ProdukScreen: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleAdd}
-          className="px-5 py-2.5 rounded-full bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold text-sm flex items-center gap-2 shadow-2xs transition-all active:scale-95 shrink-0 border border-[#fde68a]"
-        >
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          <span>Tambah Produk</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsBarcodeSearchOpen(true)}
+            className="px-4 py-2.5 rounded-full bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-sm flex items-center gap-2 shadow-xs transition-all active:scale-95 shrink-0"
+            title="Scan barcode produk untuk mencari & memfilter barang"
+          >
+            <span className="material-symbols-outlined text-[20px]">barcode_scanner</span>
+            <span>Scan Cek Produk</span>
+          </button>
+
+          <button
+            onClick={handleAdd}
+            className="px-5 py-2.5 rounded-full bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold text-sm flex items-center gap-2 shadow-2xs transition-all active:scale-95 shrink-0 border border-[#fde68a]"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+            <span>Tambah Produk</span>
+          </button>
+        </div>
       </div>
+
+      {/* Active Barcode Filter Notification */}
+      {barcodeFilterQuery && (
+        <div className="bg-[#e0f2fe] border-2 border-[#bae6fd] p-3 rounded-2xl flex items-center justify-between gap-3 text-[#0369a1] animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[22px]">filter_alt</span>
+            <span className="text-xs font-bold">
+              Filter Barcode Aktif:{' '}
+              <strong className="font-mono bg-white px-2 py-0.5 rounded border border-[#bae6fd] text-[#0f172a]">
+                {barcodeFilterQuery}
+              </strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBarcodeFilterQuery('')}
+            className="px-3 py-1 bg-white hover:bg-stone-100 rounded-xl text-xs font-bold text-[#0369a1] border border-[#bae6fd] shadow-2xs"
+          >
+            Hapus Filter Barcode
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-[#fffdfa]/95 backdrop-blur-xs p-4 rounded-3xl border border-[#ede5d8] shadow-[0px_4px_20px_rgba(168,153,128,0.08)] flex flex-wrap items-center justify-between gap-3">
@@ -183,6 +227,15 @@ export const ProdukScreen: React.FC = () => {
                     <p className="text-lg font-extrabold text-[#713f12]">
                       {formatRupiah(product.price)}
                     </p>
+
+                    {/* Barcode Badge */}
+                    <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-[#475569] bg-stone-100/90 px-2 py-1 rounded-xl border border-stone-200">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="material-symbols-outlined text-[15px] text-[#0284c7] shrink-0">barcode</span>
+                        <span className="font-bold truncate">{product.barcode || product.sku}</span>
+                      </span>
+                      <span className="text-[10px] text-stone-400 font-sans font-medium shrink-0 ml-1">Barcode</span>
+                    </div>
                   </div>
                 </div>
 
@@ -253,6 +306,17 @@ export const ProdukScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Barcode Lookup & Search Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isBarcodeSearchOpen}
+        onClose={() => setIsBarcodeSearchOpen(false)}
+        mode="input"
+        title="Scan Barcode Cek Produk"
+        onScanCode={(code) => {
+          setBarcodeFilterQuery(code);
+        }}
+      />
     </div>
   );
 };
@@ -262,6 +326,10 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
 
   const [name, setName] = useState(product?.name || '');
   const [sku, setSku] = useState(product?.sku || `SKU-${Math.floor(100 + Math.random() * 900)}`);
+  const [barcode, setBarcode] = useState(
+    product?.barcode || (product?.sku ? `899${Math.floor(100000000 + Math.random() * 900000000)}` : '')
+  );
+  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
   const [category, setCategory] = useState(product?.category || categories[0]?.name || 'Minuman Kopi');
   const [price, setPrice] = useState(product?.price?.toString() || '25000');
   const [stock, setStock] = useState(product?.stock?.toString() || '20');
@@ -287,11 +355,13 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
     const numPrice = parseFloat(price) || 0;
     const numStock = parseInt(stock) || 0;
     const numMin = parseInt(minThreshold) || 5;
+    const finalBarcode = barcode.trim() || sku.trim() || `899${Date.now().toString().slice(-9)}`;
 
     if (product) {
       updateProduct(product.id, {
         name,
         sku,
+        barcode: finalBarcode,
         category,
         price: numPrice,
         stock: numStock,
@@ -302,6 +372,7 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
       addProduct({
         name,
         sku,
+        barcode: finalBarcode,
         category,
         price: numPrice,
         stock: numStock,
@@ -339,7 +410,7 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#57534e] block mb-1">SKU / Kode</label>
+              <label className="text-xs font-bold text-[#57534e] block mb-1">SKU / Kode Toko</label>
               <input
                 type="text"
                 required
@@ -348,6 +419,38 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
                 placeholder="KOP-001"
                 className="w-full px-3.5 py-2.5 bg-[#fdfbf7] border border-[#ede5d8] rounded-xl text-sm font-mono text-[#292524] outline-none focus:border-[#eab308]"
               />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-[#57534e]">Barcode Produk</label>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="text-[10px] font-bold text-[#0284c7] hover:text-[#0369a1] flex items-center gap-0.5"
+                  title="Scan barcode produk fisik menggunakan kamera"
+                >
+                  <span className="material-symbols-outlined text-[13px]">barcode_scanner</span>
+                  <span>Scan Kamera</span>
+                </button>
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="899..."
+                  className="flex-1 px-3.5 py-2.5 bg-[#fdfbf7] border border-[#ede5d8] rounded-xl text-sm font-mono font-bold text-[#292524] outline-none focus:border-[#eab308]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="px-2.5 py-2 rounded-xl bg-[#e0f2fe] text-[#0369a1] hover:bg-[#bae6fd] border border-[#bae6fd] text-xs font-bold flex items-center justify-center shrink-0"
+                  title="Buka Kamera Barcode Scanner"
+                >
+                  <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                </button>
+              </div>
             </div>
 
             <div>
@@ -444,6 +547,20 @@ const ProductFormModal: React.FC<ProductModalProps> = ({ product, onClose }) => 
             </button>
           </div>
         </form>
+
+        {/* Input Scanner Modal */}
+        <BarcodeScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          mode="input"
+          title="Scan Barcode untuk Produk"
+          onScanCode={(code) => {
+            setBarcode(code);
+            if (!sku || sku.startsWith('SKU-')) {
+              setSku(code);
+            }
+          }}
+        />
       </div>
     </div>
   );

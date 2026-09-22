@@ -1,6 +1,8 @@
 {
   "name": "KASIRKU POS",
-  "description": "Modern Retail Point of Sale, Inventory Management, and Real-time Analytics System",
-  "requestFramePermissions": [],
+  "description": "Modern Retail Point of Sale, Inventory Management, and Real-time Analytics System integrated with Turso Cloud Database",
+  "requestFramePermissions": [
+    "camera"
+  ],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

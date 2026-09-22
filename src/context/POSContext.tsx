@@ -26,6 +26,7 @@ import {
   INITIAL_USERS,
   STORE_PHOTO_PRESETS,
 } from '../data/initialData';
+import { tursoApi } from '../services/tursoApi';
 
 interface ToastData {
   id: string;
@@ -107,6 +108,13 @@ interface POSContextType {
   setActiveReceiptTransaction: (trx: Transaction | null) => void;
   processPayment: (method: PaymentMethod, amountReceived: number) => Promise<Transaction>;
   
+  // Barcode Scanning & Hardware Scanner
+  isBarcodeModalOpen: boolean;
+  setIsBarcodeModalOpen: (open: boolean) => void;
+  openBarcodeModal: () => void;
+  findProductByBarcode: (code: string) => Product | undefined;
+  scanBarcodeAndAddToCart: (code: string) => { success: boolean; product?: Product; message: string };
+  
   // Product & Inventory Management
   addProduct: (productData: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, productData: Partial<Product>) => void;
@@ -164,6 +172,10 @@ interface POSContextType {
   setAntiGlareFilter: (val: boolean | ((prev: boolean) => boolean)) => void;
   uiDensity: 'relaxed' | 'compact';
   setUiDensity: (density: 'relaxed' | 'compact') => void;
+
+  // Turso Cloud Database
+  dbStatus: 'connected' | 'syncing' | 'offline';
+  syncWithTurso: () => Promise<void>;
 }
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -268,11 +280,23 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tableNumber, setTableNumber] = useState<string>('');
   const [soundTheme, setSoundTheme] = useState<'chime' | 'bell' | 'click' | 'mute'>('chime');
   const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
+  const [dbStatus, setDbStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
 
   // LocalStorage state initialization
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('kasirku_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        const parsed: Product[] = JSON.parse(saved);
+        return parsed.map((p, idx) => ({
+          ...p,
+          barcode: p.barcode || INITIAL_PRODUCTS[idx]?.barcode || `899${100100100 + (idx + 1)}`,
+        }));
+      } catch {
+        // ignore
+      }
+    }
+    return INITIAL_PRODUCTS;
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -363,6 +387,10 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return cashiers.find((c) => c.id === activeCashierId) || cashiers[0];
   }, [currentUser, cashiers, activeCashierId]);
+
+  // Barcode Scanner Modal State
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState<boolean>(false);
+  const openBarcodeModal = () => setIsBarcodeModalOpen(true);
 
   // Profile Photo Modal State
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState<boolean>(false);
@@ -552,6 +580,66 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('kasirku_shift_history', JSON.stringify(shiftHistory));
   }, [shiftHistory]);
 
+  // Synchronize with Turso Cloud Database
+  const syncWithTurso = async () => {
+    setDbStatus('syncing');
+    try {
+      const health = await tursoApi.checkHealth();
+      if (health.status !== 'ok' || health.turso !== 'connected') {
+        setDbStatus('offline');
+        return;
+      }
+
+      setDbStatus('connected');
+      const [cloudProds, cloudCats, cloudTrx, cloudShifts, cloudHeld, cloudSettings] =
+        await Promise.all([
+          tursoApi.getProducts(),
+          tursoApi.getCategories(),
+          tursoApi.getTransactions(),
+          tursoApi.getShifts(),
+          tursoApi.getHeldOrders(),
+          tursoApi.getSettings(),
+        ]);
+
+      if (cloudProds && cloudProds.length > 0) {
+        setProducts(cloudProds);
+      } else {
+        await tursoApi.bootstrapSync({
+          products,
+          categories,
+          settings,
+        });
+      }
+
+      if (cloudCats && cloudCats.length > 0) {
+        setCategories(cloudCats);
+      }
+
+      if (cloudTrx && cloudTrx.length > 0) {
+        setTransactions(cloudTrx);
+      }
+
+      if (cloudShifts && cloudShifts.length > 0) {
+        setShiftHistory(cloudShifts);
+      }
+
+      if (cloudHeld && cloudHeld.length > 0) {
+        setHeldOrders(cloudHeld);
+      }
+
+      if (cloudSettings) {
+        setSettings((prev) => ({ ...prev, ...cloudSettings }));
+      }
+    } catch (err) {
+      console.warn('Turso sync warning (running in offline fallback mode):', err);
+      setDbStatus('offline');
+    }
+  };
+
+  useEffect(() => {
+    syncWithTurso();
+  }, []);
+
   // Ensure active open shift is always synchronized with activeCashier (so user and cashier never mismatch)
   useEffect(() => {
     if (activeCashier && currentShift && currentShift.status === 'OPEN') {
@@ -647,6 +735,57 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCart([]);
     setCartDiscount(0);
     playAudioTone('beep', soundTheme);
+  };
+
+  // Barcode Lookup & Smart Scan-to-Cart
+  const findProductByBarcode = (code: string): Product | undefined => {
+    if (!code) return undefined;
+    const clean = code.trim().toLowerCase();
+    return products.find(
+      (p) =>
+        (p.barcode && p.barcode.toLowerCase() === clean) ||
+        p.sku.toLowerCase() === clean ||
+        p.id.toLowerCase() === clean ||
+        p.name.toLowerCase() === clean
+    );
+  };
+
+  const scanBarcodeAndAddToCart = (
+    code: string
+  ): { success: boolean; product?: Product; message: string } => {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      return { success: false, message: 'Kode barcode kosong!' };
+    }
+
+    const found = findProductByBarcode(trimmed);
+    if (!found) {
+      playAudioTone('error', soundTheme);
+      showToast(`Barcode "${trimmed}" tidak cocok dengan produk apapun!`, 'error');
+      return { success: false, message: `Barcode "${trimmed}" tidak ditemukan!` };
+    }
+
+    if (found.stock <= 0) {
+      playAudioTone('error', soundTheme);
+      showToast(`Stok "${found.name}" habis (0 tersisa)!`, 'warning');
+      return { success: false, product: found, message: `Stok ${found.name} habis!` };
+    }
+
+    const added = addToCart(found);
+    if (added) {
+      showToast(`Scan sukses: ${found.name} (+1)`, 'success');
+      return {
+        success: true,
+        product: found,
+        message: `${found.name} ditambahkan ke keranjang belanja!`,
+      };
+    } else {
+      return {
+        success: false,
+        product: found,
+        message: `Stok ${found.name} mencapai batas maksimum!`,
+      };
+    }
   };
 
   // Checkout process
@@ -768,6 +907,11 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     showToast(`Transaksi ${newInvoiceNumber} Berhasil!`, 'success');
+    // Save transaction and decrement stocks in Turso Cloud Database
+    tursoApi.saveTransaction(newTransaction).catch((err) => {
+      console.warn('Failed to sync transaction to Turso cloud:', err);
+    });
+
     return newTransaction;
   };
 
@@ -775,10 +919,12 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addProduct = (productData: Omit<Product, 'id'>) => {
     const newProduct: Product = {
       ...productData,
+      barcode: productData.barcode?.trim() || productData.sku || `899${Date.now().toString().slice(-9)}`,
       id: `prod-${Date.now()}`,
     };
     setProducts((prev) => [newProduct, ...prev]);
     showToast(`Produk "${newProduct.name}" berhasil ditambahkan`, 'success');
+    tursoApi.addProduct(newProduct).catch((err) => console.warn('Turso addProduct error:', err));
   };
 
   const updateProduct = (id: string, productData: Partial<Product>) => {
@@ -786,6 +932,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((p) => (p.id === id ? { ...p, ...productData } : p))
     );
     showToast('Data produk berhasil diperbarui', 'success');
+    tursoApi.updateProduct(id, productData).catch((err) => console.warn('Turso updateProduct error:', err));
   };
 
   const deleteProduct = (id: string) => {
@@ -793,6 +940,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts((prev) => prev.filter((p) => p.id !== id));
     setCart((prev) => prev.filter((item) => item.product.id !== id));
     showToast(`Produk "${prod?.name || ''}" berhasil dihapus`, 'info');
+    tursoApi.deleteProduct(id).catch((err) => console.warn('Turso deleteProduct error:', err));
   };
 
   const restockProduct = (productId: string, addedStock: number, note = 'Input Stok Masuk') => {
@@ -805,6 +953,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts((prev) =>
       prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
     );
+
+    tursoApi.updateProduct(productId, { stock: newStock }).catch((err) => console.warn('Turso restock error:', err));
 
     const log: StockLog = {
       id: `log-${Date.now()}`,
@@ -834,6 +984,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((p) => (p.id === productId ? { ...p, stock: newStock } : p))
     );
 
+    tursoApi.updateProduct(productId, { stock: newStock }).catch((err) => console.warn('Turso adjustStock error:', err));
+
     const log: StockLog = {
       id: `log-${Date.now()}`,
       productId,
@@ -859,6 +1011,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setCategories((prev) => [...prev, newCategory]);
     showToast(`Kategori "${newCategory.name}" berhasil dibuat`, 'success');
+    tursoApi.addCategory(newCategory).catch((err) => console.warn('Turso addCategory error:', err));
   };
 
   const updateCategory = (id: string, categoryData: Partial<Category>) => {
@@ -866,6 +1019,10 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((c) => (c.id === id ? { ...c, ...categoryData } : c))
     );
     showToast('Kategori berhasil diperbarui', 'success');
+    const existing = categories.find((c) => c.id === id);
+    if (existing) {
+      tursoApi.addCategory({ ...existing, ...categoryData }).catch((err) => console.warn('Turso updateCategory error:', err));
+    }
   };
 
   const deleteCategory = (id: string) => {
@@ -876,7 +1033,11 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Settings
   const updateSettings = (newSettings: Partial<StoreSettings>) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
+    setSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      tursoApi.saveSettings(updated).catch((err) => console.warn('Turso updateSettings error:', err));
+      return updated;
+    });
     showToast('Pengaturan toko tersimpan!', 'success');
   };
 
@@ -1234,6 +1395,11 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeReceiptTransaction,
         setActiveReceiptTransaction,
         processPayment,
+        isBarcodeModalOpen,
+        setIsBarcodeModalOpen,
+        openBarcodeModal,
+        findProductByBarcode,
+        scanBarcodeAndAddToCart,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -1271,6 +1437,8 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAntiGlareFilter,
         uiDensity,
         setUiDensity,
+        dbStatus,
+        syncWithTurso,
       }}
     >
       {children}
