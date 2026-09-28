@@ -20,6 +20,7 @@ import { StokScreen } from './components/screens/StokScreen';
 import { RiwayatScreen } from './components/screens/RiwayatScreen';
 import { LaporanScreen } from './components/screens/LaporanScreen';
 import { PengaturanScreen } from './components/screens/PengaturanScreen';
+import { LandingPage } from './components/screens/LandingPage';
 
 const MainLayout: React.FC = () => {
   const {
@@ -39,6 +40,35 @@ const MainLayout: React.FC = () => {
 
   const isCompact = sidebarMode === 'compact' && !zenFocusMode;
   const isHidden = sidebarMode === 'hidden' || zenFocusMode;
+
+  const getThemeBgClass = () => {
+    switch (eyeCareTheme) {
+      case 'matcha-sage':
+        return 'bg-[#eff5ee]';
+      case 'slate-charcoal':
+        return 'bg-[#18181b]';
+      case 'nordic-sky':
+        return 'bg-[#eff5f9]';
+      case 'warm-beige':
+      default:
+        return 'bg-[#f6f4ee]';
+    }
+  };
+
+  // If viewing the Landing Page, render full-bleed landing view
+  if (currentScreen === 'landing') {
+    return (
+      <div
+        data-theme={eyeCareTheme}
+        className={`min-h-screen ${getThemeBgClass()} ${
+          antiGlareFilter ? 'antiglare-active' : ''
+        }`}
+      >
+        <LandingPage />
+        <ToastContainer />
+      </div>
+    );
+  }
 
   // If not logged in, render the Login and Register Screen
   if (!currentUser) {
@@ -73,20 +103,6 @@ const MainLayout: React.FC = () => {
         return <PengaturanScreen />;
       default:
         return <KasirScreen />;
-    }
-  };
-
-  const getThemeBgClass = () => {
-    switch (eyeCareTheme) {
-      case 'matcha-sage':
-        return 'bg-[#eff5ee]';
-      case 'slate-charcoal':
-        return 'bg-[#18181b]';
-      case 'nordic-sky':
-        return 'bg-[#eff5f9]';
-      case 'warm-beige':
-      default:
-        return 'bg-[#f6f4ee]';
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { usePOS } from '../../context/POSContext';
 import { Product } from '../../types';
 import { BarcodeScannerModal } from '../modals/BarcodeScannerModal';
+import { lookupBarcodeInfo, BarcodeCatalogItem } from '../../data/barcodeCatalog';
 
 export const KasirScreen: React.FC = () => {
   const {
@@ -43,15 +44,28 @@ export const KasirScreen: React.FC = () => {
     setIsBarcodeModalOpen,
     openBarcodeModal,
     scanBarcodeAndAddToCart,
+    openAddProductWithBarcode,
   } = usePOS();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [quickBarcodeInput, setQuickBarcodeInput] = useState<string>('');
+  const [unregisteredBarcode, setUnregisteredBarcode] = useState<string | null>(null);
+  const [unregisteredBarcodeInfo, setUnregisteredBarcodeInfo] = useState<BarcodeCatalogItem | null>(null);
   const [cashReceived, setCashReceived] = useState<string>('50000');
   const [discountInputOpen, setDiscountInputOpen] = useState<boolean>(false);
   const [tempDiscount, setTempDiscount] = useState<string>('0');
   const [activeItemNoteModal, setActiveItemNoteModal] = useState<string | null>(null);
   const [activeNoteText, setActiveNoteText] = useState<string>('');
+
+  const handleUnregisteredDetected = async (code: string) => {
+    setUnregisteredBarcode(code);
+    try {
+      const info = await lookupBarcodeInfo(code);
+      setUnregisteredBarcodeInfo(info);
+    } catch {
+      setUnregisteredBarcodeInfo(null);
+    }
+  };
 
   // Hardware USB/Bluetooth Barcode Scanner Keyboard Listener
   useEffect(() => {
@@ -77,8 +91,15 @@ export const KasirScreen: React.FC = () => {
       if (e.key === 'Enter') {
         if (barcodeBuffer.length >= 3 && diff < 120) {
           e.preventDefault();
-          scanBarcodeAndAddToCart(barcodeBuffer);
+          const code = barcodeBuffer.trim();
           barcodeBuffer = '';
+          const res = scanBarcodeAndAddToCart(code);
+          if (!res.success && !res.product) {
+            handleUnregisteredDetected(code);
+          } else {
+            setUnregisteredBarcode(null);
+            setUnregisteredBarcodeInfo(null);
+          }
         }
       } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         if (diff > 120 && !isInput) {
@@ -96,8 +117,15 @@ export const KasirScreen: React.FC = () => {
 
   const handleQuickBarcodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickBarcodeInput.trim()) return;
-    scanBarcodeAndAddToCart(quickBarcodeInput.trim());
+    const code = quickBarcodeInput.trim();
+    if (!code) return;
+    const res = scanBarcodeAndAddToCart(code);
+    if (!res.success && !res.product) {
+      handleUnregisteredDetected(code);
+    } else {
+      setUnregisteredBarcode(null);
+      setUnregisteredBarcodeInfo(null);
+    }
     setQuickBarcodeInput('');
   };
 
@@ -224,7 +252,7 @@ export const KasirScreen: React.FC = () => {
             {/* Cashier Avatar with Camera Action Button */}
             <div className="relative group/avatar shrink-0">
               <img
-                src={currentUser?.avatarUrl || activeCashier.avatarUrl}
+                src={activeCashier.avatarUrl}
                 alt={activeCashier.name}
                 className="w-10 h-10 rounded-xl object-cover border-2 border-[#94a3b8] shadow-xs"
                 onError={(e) => {
@@ -250,16 +278,11 @@ export const KasirScreen: React.FC = () => {
                   Kasir Bertugas
                 </span>
                 <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#0284c7] text-white">
-                  {currentUser ? currentUser.role : activeCashier.role}
+                  {activeCashier.role}
                 </span>
-                {currentUser?.username && (
-                  <span className="text-[10px] font-mono text-[#64748b] hidden sm:inline">
-                    @{currentUser.username}
-                  </span>
-                )}
               </div>
               <p className="text-sm font-extrabold text-[#0f172a] truncate leading-tight mt-0.5">
-                {currentUser ? currentUser.fullName : activeCashier.name}
+                {activeCashier.name}
               </p>
             </div>
 
@@ -382,6 +405,83 @@ export const KasirScreen: React.FC = () => {
           </form>
         </div>
 
+        {/* Unregistered Barcode Alert Banner with Product Packaging Image & 1-click Auto Input */}
+        {unregisteredBarcode && (
+          <div className="bg-amber-50 border border-amber-300 text-amber-950 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-3 min-w-0">
+              {unregisteredBarcodeInfo?.image ? (
+                <img
+                  src={unregisteredBarcodeInfo.image}
+                  alt={unregisteredBarcodeInfo.name}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-xl object-cover border border-amber-300 bg-white shadow-2xs shrink-0"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&auto=format&fit=crop&q=80';
+                  }}
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+                  <span className="material-symbols-outlined text-[22px]">help_outline</span>
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-amber-900">
+                    {unregisteredBarcodeInfo ? 'Kemasan Asli Terdeteksi!' : 'Barcode Belum Terdaftar'}
+                  </span>
+                  <span className="font-mono text-[11px] font-bold bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded">
+                    {unregisteredBarcode}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-stone-700 truncate mt-0.5">
+                  {unregisteredBarcodeInfo
+                    ? `${unregisteredBarcodeInfo.name} • ${unregisteredBarcodeInfo.brand} (Est. ${formatRupiah(unregisteredBarcodeInfo.price)})`
+                    : 'Produk ini belum ada di daftar menu/barang toko Anda.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  openAddProductWithBarcode(
+                    unregisteredBarcode,
+                    unregisteredBarcodeInfo
+                      ? {
+                          name: unregisteredBarcodeInfo.name,
+                          price: unregisteredBarcodeInfo.price,
+                          category: unregisteredBarcodeInfo.category,
+                          image: unregisteredBarcodeInfo.image,
+                          description: unregisteredBarcodeInfo.description,
+                        }
+                      : undefined
+                  );
+                  setUnregisteredBarcode(null);
+                  setUnregisteredBarcodeInfo(null);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">add_box</span>
+                <span>
+                  {unregisteredBarcodeInfo ? '+ Input dengan Foto Ini' : '+ Input Barang Baru'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUnregisteredBarcode(null);
+                  setUnregisteredBarcodeInfo(null);
+                }}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-amber-100 transition-colors"
+                title="Tutup pemberitahuan"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Category Pills Bar with Pastel Yellow & Warm Beige Palette */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-1">
           <button
@@ -484,8 +584,15 @@ export const KasirScreen: React.FC = () => {
                     {/* Product Image Container */}
                     <div className="relative aspect-4/3 w-full rounded-2xl overflow-hidden bg-[#f7f3eb] mb-3 border border-[#ede5d8]">
                       <img
-                        src={product.image}
+                        src={product.image || 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&auto=format&fit=crop&q=80'}
                         alt={product.name}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (!target.src.includes('unsplash.com')) {
+                            target.src = 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&auto=format&fit=crop&q=80';
+                          }
+                        }}
                         className={`w-full h-full object-cover transition-transform duration-300 ${
                           isOutOfStock ? 'grayscale-[30%]' : 'group-hover:scale-105'
                         }`}

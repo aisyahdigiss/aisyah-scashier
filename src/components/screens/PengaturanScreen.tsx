@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePOS } from '../../context/POSContext';
-import { CashierAccount } from '../../types';
+import { CashierAccount, AuthUser } from '../../types';
 import { AvatarPicker, CUTE_AVATAR_PRESETS } from '../common/AvatarPicker';
 
 export const PengaturanScreen: React.FC = () => {
@@ -24,6 +24,7 @@ export const PengaturanScreen: React.FC = () => {
     users,
     logout,
     switchUser,
+    deleteUser,
     eyeCareTheme,
     setEyeCareTheme,
     antiGlareFilter,
@@ -74,6 +75,9 @@ export const PengaturanScreen: React.FC = () => {
 
   // Delete Cashier Confirmation Modal
   const [deletingCashier, setDeletingCashier] = useState<CashierAccount | null>(null);
+
+  // Delete User Confirmation Modal
+  const [deletingUser, setDeletingUser] = useState<AuthUser | null>(null);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +141,12 @@ export const PengaturanScreen: React.FC = () => {
     if (!deletingCashier) return;
     deleteCashier(deletingCashier.id);
     setDeletingCashier(null);
+  };
+
+  const handleConfirmDeleteUser = () => {
+    if (!deletingUser) return;
+    deleteUser(deletingUser.id);
+    setDeletingUser(null);
   };
 
   return (
@@ -435,7 +445,7 @@ export const PengaturanScreen: React.FC = () => {
                           </div>
                         </div>
 
-                        <div>
+                        <div className="flex items-center gap-1.5 shrink-0">
                           {isCurrent ? (
                             <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 whitespace-nowrap">
                               Sedang Aktif
@@ -444,11 +454,19 @@ export const PengaturanScreen: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => switchUser(user.id)}
-                              className="px-3 py-1.5 rounded-md bg-white hover:bg-stone-50 text-[#0284c7] text-xs font-bold border border-[#bae6fd] transition-colors whitespace-nowrap"
+                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-stone-50 text-[#0284c7] text-xs font-bold border border-[#bae6fd] transition-colors whitespace-nowrap"
                             >
                               Ganti Akun
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => setDeletingUser(user)}
+                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-600 border border-stone-200 hover:border-rose-300 transition-colors shadow-2xs"
+                            title={`Hapus Akun ${user.fullName}`}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -574,18 +592,10 @@ export const PengaturanScreen: React.FC = () => {
 
                         {/* Delete Button */}
                         <button
+                          type="button"
                           onClick={() => setDeletingCashier(cashier)}
-                          disabled={cashiers.length <= 1}
-                          className={`p-1.5 rounded-xl border transition-colors ${
-                            cashiers.length <= 1
-                              ? 'bg-stone-100 text-stone-300 border-stone-200 cursor-not-allowed'
-                              : 'bg-white hover:bg-rose-50 text-[#78716c] hover:text-rose-600 border-[#ede5d8] hover:border-rose-200'
-                          }`}
-                          title={
-                            cashiers.length <= 1
-                              ? 'Minimal harus ada 1 akun kasir'
-                              : `Hapus ${cashier.name}`
-                          }
+                          className="p-1.5 rounded-xl border bg-white hover:bg-rose-50 text-[#78716c] hover:text-rose-600 border-[#ede5d8] hover:border-rose-200 transition-colors shadow-xs"
+                          title={`Hapus ${cashier.name}`}
                           aria-label={`Hapus ${cashier.name}`}
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -1565,6 +1575,41 @@ export const PengaturanScreen: React.FC = () => {
                 className="flex-1 py-2.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md transition-all active:scale-95"
               >
                 Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-[#fffdfa] rounded-3xl p-6 max-w-sm w-full border border-[#ede5d8] shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-700 flex items-center justify-center mx-auto border border-rose-200">
+              <span className="material-symbols-outlined text-[24px]">person_remove</span>
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-bold text-base text-[#292524]">Hapus Akun Pengguna / Kasir?</h3>
+              <p className="text-xs text-[#78716c] leading-relaxed">
+                Apakah Anda yakin ingin menghapus akun <span className="font-bold text-[#292524]">"{deletingUser.fullName}"</span> (@{deletingUser.username})? Akun ini akan dihapus permanen dan tidak dapat login lagi.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                className="flex-1 py-2.5 rounded-full bg-[#f7f3eb] hover:bg-[#eee7d8] text-[#57534e] text-xs font-bold transition-colors border border-[#ede5d8]"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteUser}
+                className="flex-1 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all active:scale-95"
+              >
+                Ya, Hapus Akun
               </button>
             </div>
           </div>

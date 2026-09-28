@@ -93,7 +93,31 @@ app.post('/api/products', async (req: Request, res: Response) => {
 app.put('/api/products/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, sku, barcode, category, price, stock, minStockThreshold, image, description } = req.body;
+    const body = req.body;
+
+    // Fetch existing product to support partial updates
+    const existing = await turso.execute({
+      sql: 'SELECT * FROM products WHERE id = ?',
+      args: [id],
+    });
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const current = existing.rows[0];
+    const name = body.name !== undefined ? body.name : current.name;
+    const sku = body.sku !== undefined ? body.sku : current.sku;
+    const barcode = body.barcode !== undefined ? body.barcode : current.barcode;
+    const category = body.category !== undefined ? body.category : current.category;
+    const price = body.price !== undefined ? Number(body.price) : Number(current.price);
+    const stock = body.stock !== undefined ? Number(body.stock) : Number(current.stock);
+    const minStockThreshold =
+      body.minStockThreshold !== undefined
+        ? Number(body.minStockThreshold)
+        : Number(current.min_stock_threshold);
+    const image = body.image !== undefined ? body.image : (current.image || '');
+    const description = body.description !== undefined ? body.description : (current.description || '');
 
     await turso.execute({
       sql: `UPDATE products 
@@ -104,18 +128,33 @@ app.put('/api/products/:id', async (req: Request, res: Response) => {
         sku,
         barcode,
         category,
-        Number(price) || 0,
-        Number(stock) || 0,
-        Number(minStockThreshold) || 5,
-        image || '',
-        description || '',
+        price,
+        stock,
+        minStockThreshold,
+        image,
+        description,
         id,
       ],
     });
 
-    res.json({ success: true, id });
+    res.json({
+      success: true,
+      id,
+      product: {
+        id,
+        name,
+        sku,
+        barcode,
+        category,
+        price,
+        stock,
+        minStockThreshold,
+        image,
+        description,
+      },
+    });
   } catch (err: any) {
-    console.error('Error updating product:', err);
+    console.error('Error updating product in Turso:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -425,6 +464,9 @@ async function startServer() {
   } catch (e) {
     console.warn('Turso initialization warning (app will continue):', e);
   }
+
+  // Serve static assets from public/ folder (e.g. product photos, icons)
+  app.use(express.static(path.join(process.cwd(), 'public')));
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

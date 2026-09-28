@@ -27,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
   const isHidden = sidebarMode === 'hidden' || zenFocusMode;
 
   const menuItems: { id: ScreenType; label: string; icon: string; badge?: number }[] = [
+    { id: 'landing', label: 'Landing Page', icon: 'storefront' },
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     {
       id: 'kasir',

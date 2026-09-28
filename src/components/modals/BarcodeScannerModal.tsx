@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { usePOS } from '../../context/POSContext';
 import { Product } from '../../types';
+import { lookupBarcodeInfo, POPULAR_BARCODE_CATALOG, BarcodeCatalogItem } from '../../data/barcodeCatalog';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mode?: 'cart' | 'input';
-  onScanCode?: (code: string) => void;
+  mode?: 'cart' | 'input' | 'new_product';
+  onScanCode?: (code: string, prefill?: Partial<Product>) => void;
   title?: string;
 }
 
@@ -18,21 +19,24 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onScanCode,
   title,
 }) => {
-  const { products, scanBarcodeAndAddToCart, showToast, playBeep } = usePOS();
+  const { products, scanBarcodeAndAddToCart, openAddProductWithBarcode, showToast, playBeep } = usePOS();
 
   const [manualCode, setManualCode] = useState<string>('');
   const [cameraActive, setCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [availableCameras, setAvailableCameras] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [detectedPackaging, setDetectedPackaging] = useState<BarcodeCatalogItem | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState<boolean>(false);
   const [lastScannedResult, setLastScannedResult] = useState<{
     code: string;
     product?: Product;
+    packaging?: BarcodeCatalogItem;
     success: boolean;
     timestamp: number;
   } | null>(null);
   const [scanHistory, setScanHistory] = useState<
-    Array<{ code: string; name: string; price: number; time: string }>
+    Array<{ code: string; name: string; price: number; time: string; image?: string }>
   >([]);
   const [continuousMode, setContinuousMode] = useState<boolean>(true);
 
@@ -42,10 +46,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const scannerContainerId = 'kasirku-barcode-reader';
 
   // Available sample products for instant one-click testing
-  const sampleProducts = products.filter((p) => p.barcode || p.sku).slice(0, 6);
+  const sampleProducts = products.filter((p) => p.barcode || p.sku).slice(0, 4);
 
   // Process a scanned or entered code
-  const handleProcessBarcode = (rawCode: string) => {
+  const handleProcessBarcode = async (rawCode: string) => {
     const code = rawCode.trim();
     if (!code) return;
 
@@ -62,17 +66,83 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     lastScanTimestampRef.current = now;
     lastScannedCodeRef.current = code;
 
+    setIsLookingUp(true);
+    // Instant lookup from packaging catalog & online Open Food Facts
+    const packagingMatch = await lookupBarcodeInfo(code);
+    setIsLookingUp(false);
+    if (packagingMatch) {
+      setDetectedPackaging(packagingMatch);
+    }
+
     // Mode: input (for ProdukScreen form)
     if (mode === 'input') {
       playBeep('success');
-      setLastScannedResult({ code, success: true, timestamp: now });
-      showToast(`Barcode terbaca: ${code}`, 'success');
+      setLastScannedResult({
+        code,
+        success: true,
+        packaging: packagingMatch || undefined,
+        timestamp: now,
+      });
+      showToast(
+        packagingMatch
+          ? `Kemasan "${packagingMatch.name}" terdeteksi dengan foto produk!`
+          : `Barcode terbaca: ${code}`,
+        'success'
+      );
       if (onScanCode) {
-        onScanCode(code);
+        onScanCode(
+          code,
+          packagingMatch
+            ? {
+                name: packagingMatch.name,
+                price: packagingMatch.price,
+                category: packagingMatch.category,
+                image: packagingMatch.image,
+                description: packagingMatch.description,
+                barcode: code,
+              }
+            : undefined
+        );
       }
       setTimeout(() => {
         onClose();
-      }, 400);
+      }, 450);
+      return;
+    }
+
+    // Mode: new_product (direct automatic input of new item with packaging image)
+    if (mode === 'new_product') {
+      playBeep('success');
+      const prefill = packagingMatch
+        ? {
+            name: packagingMatch.name,
+            price: packagingMatch.price,
+            category: packagingMatch.category,
+            image: packagingMatch.image,
+            description: packagingMatch.description,
+            barcode: code,
+          }
+        : undefined;
+
+      setLastScannedResult({
+        code,
+        packaging: packagingMatch || undefined,
+        success: true,
+        timestamp: now,
+      });
+      showToast(
+        packagingMatch
+          ? `Kemasan "${packagingMatch.name}" terdeteksi! Membuka form dengan foto asli...`
+          : `Barcode ${code} terbaca! Membuka form produk baru...`,
+        'success'
+      );
+      if (onScanCode) {
+        onScanCode(code, prefill);
+      }
+      openAddProductWithBarcode(code, prefill);
+      setTimeout(() => {
+        onClose();
+      }, 450);
       return;
     }
 
@@ -81,6 +151,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setLastScannedResult({
       code,
       product: result.product,
+      packaging: packagingMatch || undefined,
       success: result.success,
       timestamp: now,
     });
@@ -96,6 +167,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           code,
           name: result.product!.name,
           price: result.product!.price,
+          image: result.product!.image,
           time,
         },
         ...prev.slice(0, 9),
@@ -370,7 +442,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </div>
         </div>
 
-        {/* Last Scanned Result Alert */}
+        {/* Last Scanned Result Alert with Product Image */}
         {lastScannedResult && (
           <div
             className={`p-3 rounded-2xl border flex items-center justify-between gap-3 animate-in fade-in duration-150 ${
@@ -380,29 +452,73 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="material-symbols-outlined text-[22px] shrink-0 text-emerald-600">
-                {lastScannedResult.success ? 'check_circle' : 'error'}
-              </span>
+              {lastScannedResult.packaging?.image || lastScannedResult.product?.image ? (
+                <img
+                  src={lastScannedResult.packaging?.image || lastScannedResult.product?.image}
+                  alt={lastScannedResult.packaging?.name || lastScannedResult.product?.name || 'Produk'}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-xl object-cover border border-emerald-300 bg-white shrink-0 shadow-2xs"
+                />
+              ) : (
+                <span className="material-symbols-outlined text-[22px] shrink-0 text-emerald-600">
+                  {lastScannedResult.success ? 'check_circle' : 'error'}
+                </span>
+              )}
               <div className="min-w-0">
-                <p className="text-xs font-black truncate">
-                  {lastScannedResult.product
-                    ? `${lastScannedResult.product.name} (+1 ke keranjang)`
-                    : `Kode: ${lastScannedResult.code}`}
-                </p>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <p className="text-xs font-black truncate">
+                    {lastScannedResult.product
+                      ? `${lastScannedResult.product.name} (+1 ke keranjang)`
+                      : lastScannedResult.packaging
+                      ? lastScannedResult.packaging.name
+                      : `Kode: ${lastScannedResult.code}`}
+                  </p>
+                  {lastScannedResult.packaging && (
+                    <span className="text-[9px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded shrink-0">
+                      Kemasan Asli
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] font-mono text-stone-600">
                   Barcode: <span className="font-bold">{lastScannedResult.code}</span>
-                  {lastScannedResult.product && (
+                  {(lastScannedResult.product || lastScannedResult.packaging) && (
                     <span className="ml-2 font-bold text-emerald-700">
-                      • Rp {lastScannedResult.product.price.toLocaleString('id-ID')}
+                      • Rp {(lastScannedResult.product?.price || lastScannedResult.packaging?.price || 0).toLocaleString('id-ID')}
                     </span>
                   )}
                 </p>
               </div>
             </div>
-            {lastScannedResult.success && (
+            {lastScannedResult.success && lastScannedResult.product ? (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-200 text-emerald-900 shrink-0">
                 BERHASIL
               </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const pkg = lastScannedResult.packaging;
+                  openAddProductWithBarcode(
+                    lastScannedResult.code,
+                    pkg
+                      ? {
+                          name: pkg.name,
+                          price: pkg.price,
+                          category: pkg.category,
+                          image: pkg.image,
+                          description: pkg.description,
+                          barcode: pkg.barcode,
+                        }
+                      : undefined
+                  );
+                  onClose();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-black flex items-center gap-1 shrink-0 shadow-xs active:scale-95 transition-all"
+                title="Input sebagai produk baru dengan foto kemasan ini"
+              >
+                <span className="material-symbols-outlined text-[15px]">add_photo_alternate</span>
+                <span>+ Input Barang Baru</span>
+              </button>
             )}
           </div>
         )}
@@ -418,7 +534,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 type="text"
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
-                placeholder="Ketik atau paste barcode (contoh: 899100100101 atau KOP-001)..."
+                placeholder="Ketik atau paste barcode (contoh: 8996001355008 atau Beng Beng)..."
                 className="w-full px-3.5 py-2.5 bg-stone-50 border-2 border-stone-300 rounded-xl text-xs font-mono font-bold text-[#0f172a] focus:bg-white focus:border-[#0284c7] outline-none transition-colors"
                 autoFocus
               />
@@ -443,53 +559,96 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           </form>
         </div>
 
-        {/* Quick Sample Barcode Simulation Chips */}
+        {/* Popular Indonesian FMCG Packaging Barcodes Quick Simulation (Beng Beng, Indomie, Aqua, Teh Botol, etc.) */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] font-black uppercase tracking-wider text-[#475569] flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-[#0284c7]">touch_app</span>
-              <span>Klik Sampel Barcode Produk (Simulasi Instan):</span>
+            <p className="text-[11px] font-black uppercase tracking-wider text-[#b45309] flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px] text-amber-600">inventory_2</span>
+              <span>Contoh Barcode Kemasan Retail Asli (Beng-Beng, Indomie, Aqua, dll):</span>
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {sampleProducts.map((p) => {
-              const codeToUse = p.barcode || p.sku;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => handleProcessBarcode(codeToUse)}
-                  className="p-2 rounded-xl bg-stone-50 hover:bg-[#e0f2fe] border border-stone-300 hover:border-[#0284c7] text-left transition-all group flex flex-col justify-between active:scale-95 shadow-2xs"
-                  title={`Klik untuk scan barcode ${p.name}`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      className="w-7 h-7 rounded-lg object-cover border border-stone-200 shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-black text-[#0f172a] truncate group-hover:text-[#0369a1]">
-                        {p.name}
-                      </p>
-                      <p className="text-[10px] font-bold text-emerald-700">
-                        Rp {p.price.toLocaleString('id-ID')}
-                      </p>
-                    </div>
+            {POPULAR_BARCODE_CATALOG.slice(0, 6).map((item) => (
+              <button
+                key={item.barcode}
+                type="button"
+                onClick={() => handleProcessBarcode(item.barcode)}
+                className="p-2 rounded-xl bg-amber-50/70 hover:bg-amber-100/90 border border-amber-300 text-left transition-all group flex flex-col justify-between active:scale-95 shadow-2xs"
+                title={`Klik untuk scan barcode kemasan asli ${item.name}`}
+              >
+                <div className="flex items-center gap-2">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    referrerPolicy="no-referrer"
+                    className="w-8 h-8 rounded-lg object-cover border border-amber-300 bg-white shrink-0 shadow-2xs"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black text-[#0f172a] truncate group-hover:text-amber-800">
+                      {item.name}
+                    </p>
+                    <p className="text-[10px] font-bold text-emerald-700">
+                      Rp {item.price.toLocaleString('id-ID')}
+                    </p>
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-[9px] font-mono font-bold text-[#475569] bg-white px-1.5 py-0.5 rounded border border-stone-300 truncate">
-                      {codeToUse}
-                    </span>
-                    <span className="text-[10px] font-black text-[#0284c7] group-hover:translate-x-0.5 transition-transform">
-                      Scan +
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-[9px] font-mono font-bold text-stone-700 bg-white px-1.5 py-0.5 rounded border border-amber-300 truncate">
+                    {item.barcode}
+                  </span>
+                  <span className="text-[10px] font-black text-amber-700 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                    <span>Scan</span>
+                    <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Existing Store Products Simulation Chips */}
+        {sampleProducts.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] font-black uppercase tracking-wider text-[#475569] flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px] text-[#0284c7]">store</span>
+                <span>Produk Terdaftar di Toko:</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {sampleProducts.map((p) => {
+                const codeToUse = p.barcode || p.sku;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleProcessBarcode(codeToUse)}
+                    className="p-1.5 rounded-xl bg-stone-50 hover:bg-[#e0f2fe] border border-stone-300 hover:border-[#0284c7] text-left transition-all group flex items-center gap-2 active:scale-95 shadow-2xs"
+                    title={`Klik untuk scan barcode ${p.name}`}
+                  >
+                    <img
+                      src={p.image || '/images/caramel_macchiato.jpg'}
+                      alt={p.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/images/caramel_macchiato.jpg';
+                      }}
+                      className="w-7 h-7 rounded-lg object-cover border border-stone-200 shrink-0 bg-white"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold text-[#0f172a] truncate group-hover:text-[#0369a1]">
+                        {p.name}
+                      </p>
+                      <p className="text-[9px] font-mono text-stone-500 truncate">
+                        {codeToUse}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Scan History in Current Session */}
         {scanHistory.length > 0 && mode === 'cart' && (

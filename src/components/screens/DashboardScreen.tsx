@@ -238,8 +238,12 @@ export const DashboardScreen: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <img
-                    src={p.image}
+                    src={p.image || '/images/caramel_macchiato.jpg'}
                     alt={p.name}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/images/caramel_macchiato.jpg';
+                    }}
                     className="w-10 h-10 rounded-xl object-cover border border-[#ede5d8]"
                   />
                   <div className="min-w-0">

@@ -409,24 +409,24 @@ export const INITIAL_SETTINGS: StoreSettings = {
 
 export const INITIAL_CASHIERS: CashierAccount[] = [
   {
-    id: 'cashier-1',
-    name: 'Andi (Kasir)',
-    role: 'Kasir',
-    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC11vXIThX3TR5KuZyFSiUYfwE4vKkRMxMMZq7F0ryBGcEoiGawA_XLgxQd5jGpkZs4xDe2mxsOjUm5j_lGHlgkiprrdR0MEtwcB849F47NIZaZ1T_V6PoWFBpv23aMXmAODkIp4lQBDkjQLgqk8f04of5M1HH7xIXPUPeUWhVnHkWH7M4wIEDTGAFAp4GG5Vy2z3K9v-VXK1fWREpKRX9yPnqMoOZLS-70rbZOtoU56o__Xr5PHYLZLA',
+    id: 'user-superadmin-1',
+    name: 'Aisyah Sya',
+    role: 'Manager',
+    avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd',
     active: true,
   },
   {
-    id: 'cashier-2',
-    name: 'Budi (Kasir)',
-    role: 'Kasir',
-    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuChmnNgyyFMI2eTmcP-nY8CgHiQwcGhv3npQrIKtbYCLWxDNR6lSe1rJ9zi8EjbHL6elGu7h-hLb8AXwHe4oQ_6_8heue-b5Ax3OzhmpiUQPlQdz77g107YIYFOY4JpPHGA50TSsjAYSviemwxgV92hbdjv55_vj0vJaQ-f-ueI3cWhMQYZ8HhO1wuAv1rGD9niqGv_14Y55QKwK-zXIre6yknU6Pddv9zHEsnxhcwf85ZJT4_2KTwvJA',
+    id: 'user-mgr-1',
+    name: 'Siti Rahma',
+    role: 'Manager',
+    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuALiv9Y4DPCMxhKvUngfdgBMaYa80aAPfMx9Zz-veyVg9zyjCNszgNLMoNl1Lg7yak00AgF9NQJNohmgABxEwJ4aM_6ezfPjmrfYp0hxTflD0NEyRy2kGGP4oetQlZQBUXBbBwaE5mdGdDuHzaQEvAEqfF5Nu4dOU09VATPB9nW6aj7e64CSB42odg9R6WPt8X0nujXDXGnkAS2Rj-Fg6q3597yg3LdM1Yhhrkiv5XTPORnYrE_m37L2w',
     active: false,
   },
   {
-    id: 'cashier-3',
-    name: 'Siti (Manager)',
-    role: 'Manager',
-    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuALiv9Y4DPCMxhKvUngfdgBMaYa80aAPfMx9Zz-veyVg9zyjCNszgNLMoNl1Lg7yak00AgF9NQJNohmgABxEwJ4aM_6ezfPjmrfYp0hxTflD0NEyRy2kGGP4oetQlZQBUXBbBwaE5mdGdDuHzaQEvAEqfF5Nu4dOU09VATPB9nW6aj7e64CSB42odg9R6WPt8X0nujXDXGnkAS2Rj-Fg6q3597yg3LdM1Yhhrkiv5XTPORnYrE_m37L2w',
+    id: 'user-kasir-1',
+    name: 'Andi Pratama',
+    role: 'Kasir',
+    avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC11vXIThX3TR5KuZyFSiUYfwE4vKkRMxMMZq7F0ryBGcEoiGawA_XLgxQd5jGpkZs4xDe2mxsOjUm5j_lGHlgkiprrdR0MEtwcB849F47NIZaZ1T_V6PoWFBpv23aMXmAODkIp4lQBDkjQLgqk8f04of5M1HH7xIXPUPeUWhVnHkWH7M4wIEDTGAFAp4GG5Vy2z3K9v-VXK1fWREpKRX9yPnqMoOZLS-70rbZOtoU56o__Xr5PHYLZLA',
     active: false,
   },
 ];

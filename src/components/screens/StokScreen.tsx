@@ -192,8 +192,15 @@ export const StokScreen: React.FC = () => {
                     <td className="py-3.5 px-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={p.image}
+                          src={p.image || 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&auto=format&fit=crop&q=80'}
                           alt={p.name}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (!target.src.includes('unsplash.com')) {
+                              target.src = 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500&auto=format&fit=crop&q=80';
+                            }
+                          }}
                           className="w-10 h-10 rounded-xl object-cover border border-[#ede5d8]"
                         />
                         <div>

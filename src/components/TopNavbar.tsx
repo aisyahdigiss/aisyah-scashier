@@ -73,6 +73,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
         return 'Laporan Keuangan';
       case 'pengaturan':
         return 'Pengaturan Toko';
+      case 'landing':
+        return 'Landing Page';
       default:
         return 'KASIRKU POS';
     }
@@ -161,6 +163,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
 
         {/* Action Buttons & Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
+          {/* Landing Page Button */}
+          <button
+            type="button"
+            onClick={() => setCurrentScreen('landing')}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold transition-all border bg-[#fcfbf9] text-[#57534e] border-[#ede7db] hover:bg-stone-100 hover:text-[#1c1917]"
+            title="Buka Halaman Landing Page"
+          >
+            <span className="material-symbols-outlined text-[18px] text-[#0284c7]">storefront</span>
+            <span className="hidden xl:inline whitespace-nowrap">Landing Page</span>
+          </button>
+
           {/* Zen Focus Mode Button */}
           <button
             type="button"
@@ -306,8 +319,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
               <div className="relative">
                 <div className="w-8 h-8 rounded-lg overflow-hidden border border-[#0284c7] bg-white shrink-0 shadow-2xs">
                   <img
-                    src={currentUser ? currentUser.avatarUrl : activeCashier.avatarUrl}
-                    alt={currentUser ? currentUser.fullName : activeCashier.name}
+                    src={activeCashier.avatarUrl}
+                    alt={activeCashier.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
@@ -321,11 +334,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
               </div>
               <div className="hidden lg:block text-left pr-1">
                 <p className="text-xs font-black text-[#0f172a] leading-tight truncate max-w-[120px]">
-                  {currentUser ? currentUser.fullName : activeCashier.name}
+                  {activeCashier.name}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="inline-block text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-[#0284c7] text-white leading-none whitespace-nowrap">
-                    {currentUser ? currentUser.role : activeCashier.role}
+                    {activeCashier.role}
                   </span>
                 </div>
               </div>
@@ -343,10 +356,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                   <div className="px-4 py-3 border-b border-stone-200 bg-[#f8fafc]">
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black text-[#0284c7] uppercase tracking-wider">
-                        Kasir & Akun Aktif
+                        Kasir Bertugas
                       </p>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0284c7] text-white">
-                        {currentUser ? currentUser.role : activeCashier.role}
+                        {activeCashier.role}
                       </span>
                     </div>
 
@@ -354,7 +367,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                       <div className="relative group/avatar cursor-pointer" onClick={() => { setShowCashierMenu(false); openPhotoModal(); }}>
                         <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-[#0284c7] bg-white shadow-xs">
                           <img
-                            src={currentUser ? currentUser.avatarUrl : activeCashier.avatarUrl}
+                            src={activeCashier.avatarUrl}
                             alt="Foto Profil"
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -370,18 +383,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
 
                       <div className="flex-1 min-w-0">
                         <p className="font-extrabold text-[#0f172a] text-sm leading-tight truncate">
-                          {currentUser ? currentUser.fullName : activeCashier.name}
+                          {activeCashier.name}
                         </p>
-                        {currentUser?.username && (
-                          <p className="text-[11px] font-mono font-bold text-[#475569] mt-0.5">
-                            @{currentUser.username}
-                          </p>
-                        )}
-                        {currentUser?.email && (
-                          <p className="text-[10px] text-[#64748b] truncate">
-                            {currentUser.email}
-                          </p>
-                        )}
+                        <p className="text-[11px] font-mono font-bold text-[#0284c7] mt-0.5">
+                          Aktif di Kasir
+                        </p>
                       </div>
                     </div>
 
@@ -399,44 +405,31 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                     </button>
                   </div>
 
-                  {/* Switchable Users List */}
-                  <div className="px-3 py-2 max-h-44 overflow-y-auto">
+                  {/* Account Security & Switcher */}
+                  <div className="px-3 py-2 space-y-1.5">
                     <p className="text-[10px] font-black uppercase tracking-wider text-[#475569] px-2 py-1">
-                      Beralih Pengguna / Kasir
+                      Keamanan & Akses Akun
                     </p>
-                    {users.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          switchUser(u.id);
-                          setShowCashierMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs transition-colors mb-1 ${
-                          currentUser?.id === u.id
-                            ? 'bg-[#f0f9ff] font-extrabold text-[#0369a1] border border-[#bae6fd]'
-                            : 'hover:bg-stone-100 text-[#0f172a]'
-                        }`}
-                      >
-                        <img
-                          src={u.avatarUrl}
-                          alt={u.fullName}
-                          className="w-7 h-7 rounded-lg object-cover border border-stone-300"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
-                          }}
-                        />
-                        <div className="flex-1 truncate">
-                          <p className="leading-tight font-bold truncate text-[#0f172a]">{u.fullName}</p>
-                          <span className="text-[10px] text-[#64748b] font-medium">{u.role}</span>
-                        </div>
-                        {currentUser?.id === u.id && (
-                          <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
-                            check_circle
-                          </span>
-                        )}
-                      </button>
-                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCashierMenu(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs bg-[#f8fafc] hover:bg-[#f0f9ff] text-[#0369a1] font-bold border border-[#bae6fd] transition-colors"
+                      title="Kunci sesi kasir dan ganti akun menggunakan username & password"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
+                        lock_reset
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="leading-tight">Ganti Akun Kasir</p>
+                        <span className="text-[10px] text-[#64748b] font-normal">
+                          Kunci sesi & masuk dengan password
+                        </span>
+                      </div>
+                    </button>
                   </div>
 
                   {/* Actions Footer */}
@@ -449,7 +442,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                       className="w-full py-2 px-3 rounded-xl bg-[#f8fafc] hover:bg-stone-100 text-[#334155] text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all border border-stone-300"
                     >
                       <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
-                      <span>Pengaturan Toko & Kasir</span>
+                      <span>Pengaturan Akun & Toko</span>
                     </button>
 
                     <button
@@ -460,7 +453,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
                       className="w-full py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all border border-rose-300"
                     >
                       <span className="material-symbols-outlined text-[16px]">logout</span>
-                      <span>Keluar (Logout) / Ganti Akun</span>
+                      <span>Keluar (Kunci Sesi Kasir)</span>
                     </button>
                   </div>
                 </div>
