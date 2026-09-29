@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePOS } from '../../context/POSContext';
 import { CashierAccount, AuthUser } from '../../types';
 import { AvatarPicker, CUTE_AVATAR_PRESETS } from '../common/AvatarPicker';
+import { SuperAdminPasswordModal, SuperAdminModalMode } from '../modals/SuperAdminPasswordModal';
 
 export const PengaturanScreen: React.FC = () => {
   const {
@@ -27,6 +28,9 @@ export const PengaturanScreen: React.FC = () => {
     deleteUser,
     eyeCareTheme,
     setEyeCareTheme,
+    isDarkMode,
+    toggleDarkMode,
+    setDarkMode,
     antiGlareFilter,
     setAntiGlareFilter,
     sidebarMode,
@@ -78,6 +82,58 @@ export const PengaturanScreen: React.FC = () => {
 
   // Delete User Confirmation Modal
   const [deletingUser, setDeletingUser] = useState<AuthUser | null>(null);
+
+  // Super Admin Password & Account CRUD Modal state
+  const [isSuperAdminModalOpen, setIsSuperAdminModalOpen] = useState(false);
+  const [superAdminModalMode, setSuperAdminModalMode] = useState<SuperAdminModalMode>('change-password');
+  const [selectedSuperAdminUser, setSelectedSuperAdminUser] = useState<AuthUser | null>(null);
+
+  // Read: Password visibility & copy feedback state
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // User list filter & search
+  const [userRoleFilter, setUserRoleFilter] = useState<'ALL' | 'Super Admin' | 'Manager' | 'Kasir'>('ALL');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+
+  const togglePasswordVisibility = (userId: string) => {
+    setVisiblePasswords((prev) => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const handleCopyText = (text: string, id: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    playBeep('beep');
+    showToast(`${label} disalin ke clipboard!`, 'info');
+    setTimeout(() => {
+      setCopiedId((curr) => (curr === id ? null : curr));
+    }, 2000);
+  };
+
+  const handleOpenChangePassword = (user: AuthUser) => {
+    setSelectedSuperAdminUser(user);
+    setSuperAdminModalMode('change-password');
+    setIsSuperAdminModalOpen(true);
+  };
+
+  const handleOpenCreateUser = () => {
+    setSelectedSuperAdminUser(null);
+    setSuperAdminModalMode('create-user');
+    setIsSuperAdminModalOpen(true);
+  };
+
+  const handleOpenEditUser = (user: AuthUser) => {
+    setSelectedSuperAdminUser(user);
+    setSuperAdminModalMode('edit-user');
+    setIsSuperAdminModalOpen(true);
+  };
+
+  const handleOpenResetPassword = (user: AuthUser) => {
+    setSelectedSuperAdminUser(user);
+    setSuperAdminModalMode('reset-password');
+    setIsSuperAdminModalOpen(true);
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,154 +379,474 @@ export const PengaturanScreen: React.FC = () => {
         <div className="lg:col-span-8">
           {/* Tab 0: Super Admin & Akun Portal */}
           {activeTab === 'akun' && (
-            <div className="bg-white rounded-2xl p-6 md:p-8 border border-[#ede7db] shadow-xs space-y-6">
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#ede7db] shadow-xs space-y-6">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#ede7db]">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#ede7db]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-[#1c1917]">
-                      Super Admin & Kredensial Login
+                    <h3 className="text-xl font-extrabold text-[#1c1917]">
+                      Super Admin & Manajemen Password
                     </h3>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd] whitespace-nowrap">
-                      Kredensial Resmi
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#e0f2fe] text-[#0369a1] border border-[#bae6fd] whitespace-nowrap">
+                      CRUD Password & Akses
                     </span>
                   </div>
                   <p className="text-xs text-[#57534e] mt-1">
-                    Kelola kredensial super admin, ganti akun staf, atau uji coba form login dan pendaftaran akun.
+                    Kelola penuh kata sandi super admin (Lihat, Ubah, Reset, Buat baru), salin kredensial, dan kontrol akses staf.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="px-4 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 border border-rose-200 transition-all self-start whitespace-nowrap"
-                >
-                  <span className="material-symbols-outlined text-[16px]">logout</span>
-                  <span>Keluar / Tampilkan Form Login</span>
-                </button>
-              </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateUser}
+                    className="px-4 py-2.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] active:bg-[#075985] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">person_add</span>
+                    <span>+ Tambah Super Admin / Akun</span>
+                  </button>
 
-              {/* Super Admin Highlight Box */}
-              <div className="p-5 rounded-xl bg-[#fcfbf9] border border-[#e2dbcc]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-white p-1 border border-[#e2dbcc] shadow-2xs shrink-0 overflow-hidden">
-                      <img
-                        src="https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd"
-                        alt="Aisyah Sya"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-[#1c1917]">
-                          Aisyah Sya (Super Admin)
-                        </h4>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#0284c7] text-white whitespace-nowrap">
-                          UTAMA
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#57534e] mt-0.5">
-                        Pemilik Toko & Hak Akses Tertinggi Sistem POS
-                      </p>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs font-medium text-[#57534e]">
-                        <span>
-                          Username: <strong className="font-mono text-[#0284c7]">aisyahsya</strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Password:{' '}
-                          <strong className="font-mono text-[#0284c7]">aisyahsyadec242025</strong>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <span className="text-[11px] font-medium text-[#78716c]">
-                      Email: aisyahdigiss@gmail.com
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const superAdmin = users.find((u) => u.username === 'aisyahsya');
-                        if (superAdmin) switchUser(superAdmin.id);
-                      }}
-                      className="px-4 py-2 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
-                      <span>Aktifkan Sebagai User Ini</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 border border-rose-200 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">logout</span>
+                    <span>Kunci / Keluar</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Registered Users List */}
+              {/* Super Admin Highlight Cards */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-[#57534e]">
-                  Daftar Seluruh Akun Pengguna Terdaftar ({users.length})
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-[#0369a1] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
+                      verified_user
+                    </span>
+                    <span>Akun Super Admin Utama ({users.filter((u) => u.role === 'Super Admin').length})</span>
+                  </h4>
+                  <span className="text-[11px] text-[#78716c]">
+                    Hak Akses Tertinggi & Hak Penuh
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {users.map((user) => {
-                    const isCurrent = currentUser?.id === user.id;
+                {users
+                  .filter((u) => u.role === 'Super Admin')
+                  .map((admin) => {
+                    const isCurrent = currentUser?.id === admin.id;
+                    const isVisible = !!visiblePasswords[admin.id];
+                    const adminPw =
+                      admin.password ||
+                      (admin.username.toLowerCase() === 'aisyahsya'
+                        ? 'aisyahsyadec242025'
+                        : 'password123');
 
                     return (
                       <div
-                        key={user.id}
-                        className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                        key={admin.id}
+                        className={`p-5 rounded-2xl border transition-all ${
                           isCurrent
-                            ? 'bg-[#f0f9ff] border-[#bae6fd] shadow-xs'
-                            : 'bg-[#ffffff] border-[#ede7db] hover:bg-[#fcfbf9]'
+                            ? 'bg-linear-to-r from-[#f0f9ff] via-[#f8fafc] to-[#f0fdf4] border-[#bae6fd] shadow-sm'
+                            : 'bg-[#fcfbf9] border-[#e2dbcc] hover:border-[#bae6fd]'
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={user.avatarUrl}
-                            alt={user.fullName}
-                            className="w-9 h-9 rounded-full object-cover border border-[#e2dbcc] shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
-                            }}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-[#1c1917] truncate">
-                              {user.fullName}
-                            </p>
-                            <p className="text-[10px] font-mono text-[#78716c]">@{user.username}</p>
-                            <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#e0f2fe] text-[#0369a1] whitespace-nowrap">
-                              {user.role}
-                            </span>
-                          </div>
-                        </div>
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                          {/* User identity */}
+                          <div className="flex items-start gap-4 min-w-0">
+                            <div className="relative">
+                              <img
+                                src={admin.avatarUrl}
+                                alt={admin.fullName}
+                                className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md shrink-0 bg-white"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
+                                }}
+                              />
+                              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#0284c7] text-white flex items-center justify-center text-[11px] shadow-xs">
+                                <span className="material-symbols-outlined text-[12px]">
+                                  verified
+                                </span>
+                              </span>
+                            </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {isCurrent ? (
-                            <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 whitespace-nowrap">
-                              Sedang Aktif
-                            </span>
-                          ) : (
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-base font-extrabold text-[#1c1917] truncate">
+                                  {admin.fullName}
+                                </h4>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0284c7] text-white shadow-2xs">
+                                  SUPER ADMIN
+                                </span>
+                                {isCurrent && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    ● Sedang Aktif
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#57534e]">
+                                <span className="flex items-center gap-1 font-mono">
+                                  <strong className="text-[#0284c7]">@{admin.username}</strong>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleCopyText(admin.username, `user-${admin.id}`, 'Username')
+                                    }
+                                    className="text-stone-400 hover:text-[#0284c7] p-0.5 rounded"
+                                    title="Salin Username"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      {copiedId === `user-${admin.id}` ? 'done' : 'content_copy'}
+                                    </span>
+                                  </button>
+                                </span>
+                                {admin.email && (
+                                  <span className="text-stone-500">📧 {admin.email}</span>
+                                )}
+                                {admin.phone && (
+                                  <span className="text-stone-500">📞 {admin.phone}</span>
+                                )}
+                              </div>
+
+                              {/* Password interactive box (CRUD: Read & Copy) */}
+                              <div className="pt-2">
+                                <div className="inline-flex items-center gap-2 p-2 rounded-xl bg-white border border-[#e2dbcc] shadow-2xs">
+                                  <span className="text-xs font-bold text-stone-600 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[15px] text-[#0284c7]">
+                                      lock
+                                    </span>
+                                    <span>Password:</span>
+                                  </span>
+
+                                  <span className="font-mono text-xs font-bold tracking-wider px-2 py-0.5 rounded bg-stone-50 text-[#0c4a6e] border border-stone-200">
+                                    {isVisible ? adminPw : '••••••••••••••••'}
+                                  </span>
+
+                                  {/* Read toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePasswordVisibility(admin.id)}
+                                    className="p-1 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-800 transition-colors"
+                                    title={isVisible ? 'Sembunyikan Password' : 'Lihat Password'}
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">
+                                      {isVisible ? 'visibility_off' : 'visibility'}
+                                    </span>
+                                  </button>
+
+                                  {/* Copy password */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleCopyText(adminPw, `pw-${admin.id}`, 'Password Super Admin')
+                                    }
+                                    className="px-2 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284c7] text-[11px] font-bold flex items-center gap-1 transition-colors"
+                                    title="Salin Password ke Clipboard"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      {copiedId === `pw-${admin.id}` ? 'done' : 'content_copy'}
+                                    </span>
+                                    <span>
+                                      {copiedId === `pw-${admin.id}` ? 'Tersalin!' : 'Salin'}
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons for Super Admin (CRUD: Update, Reset, Delete, Switch) */}
+                          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-center">
+                            {/* Update Password */}
                             <button
                               type="button"
-                              onClick={() => switchUser(user.id)}
-                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-stone-50 text-[#0284c7] text-xs font-bold border border-[#bae6fd] transition-colors whitespace-nowrap"
+                              onClick={() => handleOpenChangePassword(admin)}
+                              className="px-3.5 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
                             >
-                              Ganti Akun
+                              <span className="material-symbols-outlined text-[16px]">key</span>
+                              <span>Ubah Password</span>
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setDeletingUser(user)}
-                            className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-600 border border-stone-200 hover:border-rose-300 transition-colors shadow-2xs"
-                            title={`Hapus Akun ${user.fullName}`}
-                          >
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
+
+                            {/* Edit Profile */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditUser(admin)}
+                              className="px-3 py-2 rounded-xl bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold border border-stone-200 transition-colors shadow-2xs flex items-center gap-1"
+                              title="Edit Profil Super Admin"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                              <span>Edit</span>
+                            </button>
+
+                            {/* Reset Password to default */}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenResetPassword(admin)}
+                              className="px-3 py-2 rounded-xl bg-white hover:bg-amber-50 text-amber-700 hover:text-amber-800 text-xs font-bold border border-amber-200 transition-colors shadow-2xs flex items-center gap-1"
+                              title="Reset Password ke default awal"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                              <span>Reset</span>
+                            </button>
+
+                            {/* Switch active user */}
+                            {!isCurrent && (
+                              <button
+                                type="button"
+                                onClick={() => switchUser(admin.id)}
+                                className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition-colors shadow-2xs flex items-center gap-1"
+                                title="Gunakan akun ini sekarang"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+                                <span>Aktifkan</span>
+                              </button>
+                            )}
+
+                            {/* Delete Super Admin (only if multiple exist) */}
+                            {users.filter((u) => u.role === 'Super Admin').length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingUser(admin)}
+                                className="p-2 rounded-xl bg-white hover:bg-rose-50 text-stone-400 hover:text-rose-600 border border-stone-200 hover:border-rose-300 transition-colors shadow-2xs"
+                                title="Hapus akun Super Admin ini"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
                   })}
+              </div>
+
+              {/* All Registered Users Section */}
+              <div className="space-y-4 pt-4 border-t border-[#ede7db]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#1c1917] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-[#0284c7]">
+                        badge
+                      </span>
+                      <span>Daftar Seluruh Pengguna & Kredensial ({users.length})</span>
+                    </h4>
+                    <p className="text-xs text-[#57534e]">
+                      Lihat, ubah kata sandi, atau edit profil akun staf kasir dan manajer.
+                    </p>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1 p-1 bg-[#f5f0e6] rounded-xl border border-[#ede5d8] overflow-x-auto">
+                    {(['ALL', 'Super Admin', 'Manager', 'Kasir'] as const).map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setUserRoleFilter(role)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                          userRoleFilter === role
+                            ? 'bg-white text-[#0c4a6e] shadow-2xs border border-[#bae6fd]'
+                            : 'text-[#78716c] hover:text-[#292524]'
+                        }`}
+                      >
+                        {role === 'ALL' ? `Semua (${users.length})` : role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3.5 top-2.5 text-[18px] text-stone-400">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    placeholder="Cari berdasarkan nama lengkap, username, atau email..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#ede5d8] focus:outline-none focus:border-[#0284c7] text-xs text-stone-800 bg-white"
+                  />
+                  {userSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setUserSearchQuery('')}
+                      className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Users List Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {users
+                    .filter((u) => {
+                      if (userRoleFilter !== 'ALL' && u.role !== userRoleFilter) return false;
+                      if (!userSearchQuery) return true;
+                      const q = userSearchQuery.toLowerCase();
+                      return (
+                        u.fullName.toLowerCase().includes(q) ||
+                        u.username.toLowerCase().includes(q) ||
+                        (u.email && u.email.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((user) => {
+                      const isCurrent = currentUser?.id === user.id;
+                      const isVisible = !!visiblePasswords[user.id];
+                      const userPw =
+                        user.password ||
+                        (user.username.toLowerCase() === 'aisyahsya'
+                          ? 'aisyahsyadec242025'
+                          : 'password123');
+
+                      return (
+                        <div
+                          key={user.id}
+                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                            isCurrent
+                              ? 'bg-[#f0f9ff] border-[#bae6fd] shadow-xs'
+                              : 'bg-white border-[#ede7db] hover:border-[#bae6fd]'
+                          }`}
+                        >
+                          {/* User Header */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={user.avatarUrl}
+                                alt={user.fullName}
+                                className="w-11 h-11 rounded-full object-cover border border-[#e2dbcc] shrink-0 bg-white"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://api.dicebear.com/7.x/adventurer/svg?seed=Aisyah&backgroundColor=bae6fd';
+                                }}
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="text-xs font-bold text-[#1c1917] truncate">
+                                    {user.fullName}
+                                  </p>
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold whitespace-nowrap ${
+                                      user.role === 'Super Admin'
+                                        ? 'bg-[#0284c7] text-white'
+                                        : user.role === 'Manager'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-stone-100 text-stone-700'
+                                    }`}
+                                  >
+                                    {user.role}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] font-mono text-[#0284c7] font-semibold">
+                                  @{user.username}
+                                </p>
+                                {user.email && (
+                                  <p className="text-[10px] text-stone-500 truncate">{user.email}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {isCurrent && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 whitespace-nowrap shrink-0">
+                                Aktif
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Password Field (CRUD: Read & Copy) */}
+                          <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50 border border-stone-200 text-xs">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="material-symbols-outlined text-[15px] text-stone-400">
+                                lock
+                              </span>
+                              <span className="font-mono text-stone-800 font-bold tracking-wide truncate">
+                                {isVisible ? userPw : '••••••••••••'}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => togglePasswordVisibility(user.id)}
+                                className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors"
+                                title={isVisible ? 'Sembunyikan' : 'Lihat Password'}
+                              >
+                                <span className="material-symbols-outlined text-[15px]">
+                                  {isVisible ? 'visibility_off' : 'visibility'}
+                                </span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopyText(userPw, `pw-${user.id}`, `Password ${user.fullName}`)
+                                }
+                                className="p-1 rounded text-stone-400 hover:text-[#0284c7] hover:bg-stone-200 transition-colors"
+                                title="Salin Password"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">
+                                  {copiedId === `pw-${user.id}` ? 'done' : 'content_copy'}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons (CRUD: Update, Reset, Delete, Switch) */}
+                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-stone-100">
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenChangePassword(user)}
+                                className="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-[#0284c7] text-[11px] font-bold border border-sky-200 flex items-center gap-1 transition-colors"
+                                title="Ganti Password"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">key</span>
+                                <span>Password</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditUser(user)}
+                                className="p-1.5 rounded-lg text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-colors"
+                                title="Edit Akun"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleOpenResetPassword(user)}
+                                className="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition-colors"
+                                title="Reset Password ke Default"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeletingUser(user)}
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                title={`Hapus Akun ${user.fullName}`}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                              </button>
+                            </div>
+
+                            {!isCurrent && (
+                              <button
+                                type="button"
+                                onClick={() => switchUser(user.id)}
+                                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-stone-50 text-[#0284c7] text-[11px] font-bold border border-[#bae6fd] transition-colors whitespace-nowrap"
+                              >
+                                Ganti Akun
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             </div>
@@ -1111,6 +1487,117 @@ export const PengaturanScreen: React.FC = () => {
                 </div>
               </div>
 
+              {/* Main Dark / Light Mode Feature Section */}
+              <div className="p-5 rounded-2xl bg-[#fcfbf9] border border-[#ede7db] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-[#1c1917] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-[#0284c7]">
+                        {isDarkMode ? 'dark_mode' : 'light_mode'}
+                      </span>
+                      <span>Mode Tema: Terang vs Gelap (Dark / Light)</span>
+                    </h4>
+                    <p className="text-xs text-[#57534e]">
+                      Pilih tampilan kontras terang atau gelap untuk kenyamanan pandangan kasir.
+                    </p>
+                  </div>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                      isDarkMode
+                        ? 'bg-amber-400/10 text-amber-500 border-amber-400/30'
+                        : 'bg-sky-50 text-[#0284c7] border-sky-200'
+                    }`}
+                  >
+                    {isDarkMode ? '🌙 Mode Gelap Aktif' : '☀️ Mode Terang Aktif'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Light Mode Card */}
+                  <button
+                    type="button"
+                    onClick={() => setDarkMode(false)}
+                    className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
+                      !isDarkMode
+                        ? 'bg-white border-[#0284c7] ring-2 ring-sky-100 shadow-sm'
+                        : 'bg-white/60 border-stone-200 hover:bg-white hover:border-stone-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        !isDarkMode
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-stone-100 text-stone-500'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[24px]">light_mode</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className="text-xs font-extrabold text-[#1c1917]">
+                          Mode Terang (Light Mode)
+                        </h5>
+                        {!isDarkMode && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-[#0369a1]">
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#57534e] mt-1 leading-relaxed">
+                        Latar bersih, natural kertas hangat, kontras sejuk ramah mata untuk shift pagi & siang.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Dark Mode Card */}
+                  <button
+                    type="button"
+                    onClick={() => setDarkMode(true)}
+                    className={`p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
+                      isDarkMode
+                        ? 'bg-[#18181b] text-white border-amber-400 ring-2 ring-amber-400/30 shadow-sm'
+                        : 'bg-white/60 border-stone-200 hover:bg-white hover:border-stone-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        isDarkMode
+                          ? 'bg-amber-400/20 text-amber-300'
+                          : 'bg-stone-800 text-stone-200'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[24px]">dark_mode</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h5
+                          className={`text-xs font-extrabold ${
+                            isDarkMode ? 'text-white' : 'text-[#1c1917]'
+                          }`}
+                        >
+                          Mode Gelap (Dark Mode)
+                        </h5>
+                        {isDarkMode && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`text-[11px] mt-1 leading-relaxed ${
+                          isDarkMode ? 'text-stone-300' : 'text-[#57534e]'
+                        }`}
+                      >
+                        Latar gelap arang elegan, mengurangi silau kontras, nyaman untuk pencahayaan minim & shift malam.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {/* 1. Palet Warna Ramah Mata */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1615,6 +2102,14 @@ export const PengaturanScreen: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Super Admin Password & Account CRUD Modal */}
+      <SuperAdminPasswordModal
+        isOpen={isSuperAdminModalOpen}
+        mode={superAdminModalMode}
+        targetUser={selectedSuperAdminUser}
+        onClose={() => setIsSuperAdminModalOpen(false)}
+      />
     </div>
   );
 };

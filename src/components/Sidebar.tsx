@@ -21,6 +21,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
     sidebarMode,
     toggleSidebarMode,
     zenFocusMode,
+    isDarkMode,
+    toggleDarkMode,
   } = usePOS();
 
   const isCompact = sidebarMode === 'compact';
@@ -240,6 +242,51 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               </span>
             </div>
           )}
+
+          {/* Dark / Light Mode Switcher in Sidebar */}
+          <div className="mt-2">
+            {isCompact ? (
+              <button
+                type="button"
+                onClick={toggleDarkMode}
+                className={`w-full py-2 rounded-xl flex items-center justify-center transition-all border shadow-2xs ${
+                  isDarkMode
+                    ? 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20'
+                    : 'bg-[#fcfbf9] text-stone-700 border-[#ede7db] hover:bg-stone-100'
+                }`}
+                title={isDarkMode ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {isDarkMode ? 'light_mode' : 'dark_mode'}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleDarkMode}
+                className={`w-full px-3 py-2 rounded-xl flex items-center justify-between text-xs font-bold transition-all border shadow-2xs ${
+                  isDarkMode
+                    ? 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20'
+                    : 'bg-[#fcfbf9] text-stone-700 border-[#ede7db] hover:bg-stone-100'
+                }`}
+                title="Ganti Tema Tampilan Gelap / Terang"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
+                    {isDarkMode ? 'light_mode' : 'dark_mode'}
+                  </span>
+                  <span>{isDarkMode ? 'Mode Gelap' : 'Mode Terang'}</span>
+                </div>
+                <div
+                  className={`w-8 h-4.5 rounded-full p-0.5 transition-colors flex items-center ${
+                    isDarkMode ? 'bg-amber-400 justify-end' : 'bg-stone-300 justify-start'
+                  }`}
+                >
+                  <div className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
+                </div>
+              </button>
+            )}
+          </div>
 
           {/* Active User Card & Logout Button */}
           {currentUser && (

@@ -23,6 +23,8 @@ export const LandingPage: React.FC = () => {
     playBeep,
     eyeCareTheme,
     setEyeCareTheme,
+    isDarkMode,
+    toggleDarkMode,
     settings,
     products,
     currentUser,
@@ -206,6 +208,22 @@ export const LandingPage: React.FC = () => {
 
           {/* Zone 3: Primary Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Dark / Light Mode Quick Toggle */}
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-xl border flex items-center justify-center transition-colors shadow-2xs cursor-pointer ${
+                isDarkMode
+                  ? 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20'
+                  : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+              }`}
+              title={isDarkMode ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
+            >
+              <span className="material-symbols-outlined text-[19px]">
+                {isDarkMode ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+
             {/* Quick Eye-Care Theme Switcher */}
             <div className="hidden sm:flex items-center bg-[#ede7db]/70 p-1 rounded-lg">
               {(

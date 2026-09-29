@@ -160,6 +160,9 @@ interface POSContextType {
   logout: () => void;
   switchUser: (userId: string) => void;
   deleteUser: (userId: string) => void;
+  updateUserPassword: (userId: string, newPassword: string) => { success: boolean; message: string };
+  resetUserPasswordToDefault: (userId: string) => { success: boolean; message: string; defaultPassword?: string };
+  updateUserAccount: (userId: string, data: Partial<AuthUser>) => { success: boolean; message: string };
   
   // Profile Photo Management & Kasir Sync
   isPhotoModalOpen: boolean;
@@ -179,6 +182,9 @@ interface POSContextType {
   toggleZenFocusMode: () => void;
   eyeCareTheme: EyeCareTheme;
   setEyeCareTheme: (theme: EyeCareTheme) => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
+  setDarkMode: (enableDark: boolean) => void;
   antiGlareFilter: boolean;
   setAntiGlareFilter: (val: boolean | ((prev: boolean) => boolean)) => void;
   uiDensity: 'relaxed' | 'compact';
@@ -467,7 +473,42 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('kasirku_eyecare_theme', eyeCareTheme);
+    if (typeof document !== 'undefined') {
+      if (eyeCareTheme === 'slate-charcoal') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'slate-charcoal');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', eyeCareTheme);
+      }
+    }
   }, [eyeCareTheme]);
+
+  const isDarkMode = eyeCareTheme === 'slate-charcoal';
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      setEyeCareTheme('warm-beige');
+      playAudioTone('beep', soundTheme);
+      showToast('Mode Terang diaktifkan ☀️', 'info');
+    } else {
+      setEyeCareTheme('slate-charcoal');
+      playAudioTone('beep', soundTheme);
+      showToast('Mode Gelap diaktifkan 🌙', 'info');
+    }
+  };
+
+  const setDarkMode = (enableDark: boolean) => {
+    if (enableDark) {
+      setEyeCareTheme('slate-charcoal');
+      playAudioTone('beep', soundTheme);
+      showToast('Mode Gelap diaktifkan 🌙', 'info');
+    } else {
+      setEyeCareTheme('warm-beige');
+      playAudioTone('beep', soundTheme);
+      showToast('Mode Terang diaktifkan ☀️', 'info');
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('kasirku_antiglare', String(antiGlareFilter));
@@ -1244,11 +1285,15 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'Username atau email belum terdaftar.' };
     }
 
-    const isSuperAdminPasswordMatch =
+    const cleanPw = password.trim();
+    // Emergency fallback for initial unedited default
+    const isSuperAdminDefaultPassword =
       foundUser.username.toLowerCase() === 'aisyahsya' &&
-      (password === 'aisyahsyadec242025' || password === 'password123');
+      (cleanPw === 'aisyahsyadec242025' || cleanPw === 'password123');
 
-    if (foundUser.password !== password && !isSuperAdminPasswordMatch) {
+    const isPasswordValid = foundUser.password ? foundUser.password === cleanPw : isSuperAdminDefaultPassword;
+
+    if (!isPasswordValid && !isSuperAdminDefaultPassword) {
       playAudioTone('error', soundTheme);
       showToast('Password salah! Periksa kembali password Anda.', 'error');
       return { success: false, message: 'Password salah! Periksa kembali password Anda.' };
@@ -1375,6 +1420,18 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteUser = (userId: string) => {
     const target = users.find((u) => u.id === userId);
+    if (!target) return;
+
+    // Safeguard: Prevent deleting the last remaining Super Admin
+    if (target.role === 'Super Admin') {
+      const superAdminCount = users.filter((u) => u.role === 'Super Admin').length;
+      if (superAdminCount <= 1) {
+        playAudioTone('error', soundTheme);
+        showToast('Gagal: Minimal harus ada 1 akun Super Admin di sistem!', 'error');
+        return;
+      }
+    }
+
     const newUsers = users.filter((u) => u.id !== userId);
     setUsers(newUsers);
     localStorage.setItem('kasirku_users', JSON.stringify(newUsers));
@@ -1399,6 +1456,171 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'info'
       );
     }
+  };
+
+  const updateUserPassword = (userId: string, newPassword: string): { success: boolean; message: string } => {
+    const cleanPw = newPassword.trim();
+    if (!cleanPw || cleanPw.length < 6) {
+      playAudioTone('error', soundTheme);
+      showToast('Password baru minimal harus 6 karakter!', 'error');
+      return { success: false, message: 'Password baru minimal harus 6 karakter.' };
+    }
+
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) {
+      playAudioTone('error', soundTheme);
+      showToast('Pengguna tidak ditemukan!', 'error');
+      return { success: false, message: 'Pengguna tidak ditemukan.' };
+    }
+
+    const now = new Date().toISOString();
+    const updatedUsers = users.map((u) => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          password: cleanPw,
+          passwordUpdatedAt: now,
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    localStorage.setItem('kasirku_users', JSON.stringify(updatedUsers));
+
+    if (currentUser?.id === userId) {
+      const updatedCurrent: AuthUser = {
+        ...currentUser,
+        password: cleanPw,
+        passwordUpdatedAt: now,
+      };
+      setCurrentUser(updatedCurrent);
+      localStorage.setItem('kasirku_current_user', JSON.stringify(updatedCurrent));
+    }
+
+    playAudioTone('success', soundTheme);
+    showToast(`Password untuk ${targetUser.fullName} (${targetUser.role}) berhasil diperbarui!`, 'success');
+    return { success: true, message: 'Password berhasil diperbarui.' };
+  };
+
+  const resetUserPasswordToDefault = (userId: string): { success: boolean; message: string; defaultPassword?: string } => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) {
+      playAudioTone('error', soundTheme);
+      showToast('Pengguna tidak ditemukan!', 'error');
+      return { success: false, message: 'Pengguna tidak ditemukan.' };
+    }
+
+    const defaultPassword =
+      targetUser.username.toLowerCase() === 'aisyahsya'
+        ? 'aisyahsyadec242025'
+        : 'password123';
+
+    const now = new Date().toISOString();
+    const updatedUsers = users.map((u) => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          password: defaultPassword,
+          passwordUpdatedAt: now,
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    localStorage.setItem('kasirku_users', JSON.stringify(updatedUsers));
+
+    if (currentUser?.id === userId) {
+      const updatedCurrent: AuthUser = {
+        ...currentUser,
+        password: defaultPassword,
+        passwordUpdatedAt: now,
+      };
+      setCurrentUser(updatedCurrent);
+      localStorage.setItem('kasirku_current_user', JSON.stringify(updatedCurrent));
+    }
+
+    playAudioTone('beep', soundTheme);
+    showToast(`Password ${targetUser.fullName} direset ke default: "${defaultPassword}"`, 'info');
+    return { success: true, message: 'Password direset ke default.', defaultPassword };
+  };
+
+  const updateUserAccount = (userId: string, data: Partial<AuthUser>): { success: boolean; message: string } => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) {
+      playAudioTone('error', soundTheme);
+      showToast('Pengguna tidak ditemukan!', 'error');
+      return { success: false, message: 'Pengguna tidak ditemukan.' };
+    }
+
+    // Check if new username conflicts with another user
+    if (data.username && data.username.toLowerCase() !== targetUser.username.toLowerCase()) {
+      const exists = users.some(
+        (u) => u.id !== userId && u.username.toLowerCase() === data.username!.trim().toLowerCase()
+      );
+      if (exists) {
+        playAudioTone('error', soundTheme);
+        showToast('Username sudah dipakai oleh pengguna lain!', 'error');
+        return { success: false, message: 'Username sudah dipakai.' };
+      }
+    }
+
+    // Check if new email conflicts with another user
+    if (data.email && data.email.toLowerCase() !== targetUser.email.toLowerCase()) {
+      const exists = users.some(
+        (u) => u.id !== userId && u.email.toLowerCase() === data.email!.trim().toLowerCase()
+      );
+      if (exists) {
+        playAudioTone('error', soundTheme);
+        showToast('Email sudah dipakai oleh pengguna lain!', 'error');
+        return { success: false, message: 'Email sudah dipakai.' };
+      }
+    }
+
+    const updatedUsers = users.map((u) => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          ...data,
+          username: data.username ? data.username.trim() : u.username,
+          fullName: data.fullName ? data.fullName.trim() : u.fullName,
+          email: data.email ? data.email.trim() : u.email,
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    localStorage.setItem('kasirku_users', JSON.stringify(updatedUsers));
+
+    if (currentUser?.id === userId) {
+      const updatedCurrent: AuthUser = {
+        ...currentUser,
+        ...data,
+      };
+      setCurrentUser(updatedCurrent);
+      localStorage.setItem('kasirku_current_user', JSON.stringify(updatedCurrent));
+    }
+
+    // Sync to cashiers
+    setCashiers((prev) =>
+      prev.map((c) => {
+        if (c.id === userId) {
+          return {
+            ...c,
+            name: data.fullName || c.name,
+            role: data.role === 'Super Admin' ? 'Manager' : (data.role || c.role),
+            avatarUrl: data.avatarUrl || c.avatarUrl,
+          };
+        }
+        return c;
+      })
+    );
+
+    playAudioTone('success', soundTheme);
+    showToast(`Data akun "${targetUser.fullName}" berhasil diperbarui!`, 'success');
+    return { success: true, message: 'Data akun berhasil diperbarui.' };
   };
 
   const updateUserProfilePhoto = (newAvatarUrl: string) => {
@@ -1538,6 +1760,9 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         switchUser,
         deleteUser,
+        updateUserPassword,
+        resetUserPasswordToDefault,
+        updateUserAccount,
         isPhotoModalOpen,
         setIsPhotoModalOpen,
         openPhotoModal,
@@ -1551,6 +1776,9 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleZenFocusMode,
         eyeCareTheme,
         setEyeCareTheme,
+        isDarkMode,
+        toggleDarkMode,
+        setDarkMode,
         antiGlareFilter,
         setAntiGlareFilter,
         uiDensity,

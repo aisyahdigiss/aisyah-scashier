@@ -372,12 +372,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    handleQuickFillAccount({
-                      username: 'aisyahsya',
-                      fullName: 'Aisyah Sya',
-                      role: 'Super Admin',
-                      defaultPw: 'aisyahsyadec242025',
-                    });
+                    const superAdmin = users.find((u) => u.role === 'Super Admin') || users[0];
+                    if (superAdmin) {
+                      const adminPw =
+                        superAdmin.password ||
+                        (superAdmin.username.toLowerCase() === 'aisyahsya'
+                          ? 'aisyahsyadec242025'
+                          : 'password123');
+                      handleQuickFillAccount({
+                        username: superAdmin.username,
+                        fullName: superAdmin.fullName,
+                        role: superAdmin.role,
+                        defaultPw: adminPw,
+                      });
+                    }
                   }}
                   className="text-xs text-[#0284c7] hover:underline font-bold"
                 >
@@ -412,9 +420,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                       signInIdentifier.toLowerCase() === u.username.toLowerCase() ||
                       signInIdentifier.toLowerCase() === u.email.toLowerCase();
                     const demoPw =
-                      u.username.toLowerCase() === 'aisyahsya'
+                      u.password ||
+                      (u.username.toLowerCase() === 'aisyahsya'
                         ? 'aisyahsyadec242025'
-                        : u.password || 'password123';
+                        : 'password123');
                     return (
                       <button
                         key={u.id}

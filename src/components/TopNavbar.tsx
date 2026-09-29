@@ -30,6 +30,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
     zenFocusMode,
     toggleZenFocusMode,
     eyeCareTheme,
+    isDarkMode,
+    toggleDarkMode,
     antiGlareFilter,
     dbStatus,
     syncWithTurso,
@@ -190,6 +192,25 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
             </span>
             <span className="hidden lg:inline whitespace-nowrap">
               {zenFocusMode ? 'Fokus Aktif' : 'Mode Zen'}
+            </span>
+          </button>
+
+          {/* Dark / Light Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all border shadow-2xs cursor-pointer ${
+              isDarkMode
+                ? 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20'
+                : 'bg-[#fcfbf9] text-stone-700 border-[#ede7db] hover:bg-stone-100 hover:text-[#1c1917]'
+            }`}
+            title={isDarkMode ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
+          >
+            <span className="material-symbols-outlined text-[19px] transition-transform duration-300">
+              {isDarkMode ? 'light_mode' : 'dark_mode'}
+            </span>
+            <span className="hidden md:inline text-xs font-bold whitespace-nowrap">
+              {isDarkMode ? 'Terang' : 'Gelap'}
             </span>
           </button>
 

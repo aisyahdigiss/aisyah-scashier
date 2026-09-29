@@ -13,6 +13,8 @@ export const EyeComfortModal: React.FC<EyeComfortModalProps> = ({ isOpen, onClos
     setEyeCareTheme,
     antiGlareFilter,
     setAntiGlareFilter,
+    isDarkMode,
+    setDarkMode,
     sidebarMode,
     setSidebarMode,
     zenFocusMode,
@@ -113,6 +115,59 @@ export const EyeComfortModal: React.FC<EyeComfortModalProps> = ({ isOpen, onClos
 
         {/* Body Content */}
         <div className="p-6 overflow-y-auto space-y-6">
+          {/* Section 0: Quick Dark / Light Mode Switch */}
+          <div className="p-4 rounded-2xl bg-[#fcfbf9] border border-[#ede7db] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#1c1917] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[18px] text-[#0284c7]">
+                  {isDarkMode ? 'dark_mode' : 'light_mode'}
+                </span>
+                <span>Mode Utama: Gelap vs Terang</span>
+              </span>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  isDarkMode
+                    ? 'bg-amber-400/20 text-amber-500'
+                    : 'bg-sky-50 text-[#0284c7] border border-sky-200'
+                }`}
+              >
+                {isDarkMode ? '🌙 Mode Gelap' : '☀️ Mode Terang'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDarkMode(false)}
+                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  !isDarkMode
+                    ? 'bg-white text-[#0369a1] border-[#0284c7] ring-2 ring-sky-100 shadow-2xs'
+                    : 'bg-white/60 text-stone-600 border-stone-200 hover:bg-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px] text-amber-500">
+                  light_mode
+                </span>
+                <span>Mode Terang</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDarkMode(true)}
+                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  isDarkMode
+                    ? 'bg-[#18181b] text-white border-amber-400 ring-2 ring-amber-400/30 shadow-2xs'
+                    : 'bg-white/60 text-stone-600 border-stone-200 hover:bg-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px] text-amber-400">
+                  dark_mode
+                </span>
+                <span>Mode Gelap</span>
+              </button>
+            </div>
+          </div>
+
           {/* Section 1: Eye Care Color Schemes */}
           <div>
             <div className="flex items-center justify-between mb-3">

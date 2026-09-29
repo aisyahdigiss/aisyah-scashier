@@ -164,4 +164,5 @@ export interface AuthUser {
   phone?: string;
   avatarUrl: string;
   createdAt: string;
+  passwordUpdatedAt?: string;
 }
