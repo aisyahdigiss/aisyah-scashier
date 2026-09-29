@@ -39,12 +39,26 @@ export const PengaturanScreen: React.FC = () => {
     setZenFocusMode,
     uiDensity,
     setUiDensity,
+    activePrinter,
+    printerList,
+    isPrinterScanning,
+    printerConfig,
+    printerLogs,
+    clearPrinterLogs,
+    openPrinterModal,
+    autoDetectPrinter,
+    connectBluetoothPrinter,
+    connectUsbPrinter,
+    disconnectPrinter,
+    setPrinterPaperWidth,
+    updatePrinterConfig,
+    printTestReceipt,
     playBeep,
     showToast,
   } = usePOS();
 
   const [activeTab, setActiveTab] = useState<
-    'profil' | 'pembayaran' | 'kasir' | 'shift' | 'akun' | 'tampilan'
+    'profil' | 'pembayaran' | 'kasir' | 'shift' | 'akun' | 'tampilan' | 'printer'
   >('akun');
 
   // Form states for Profil Toko & Jam Operasional
@@ -274,6 +288,46 @@ export const PengaturanScreen: React.FC = () => {
             </div>
           </div>
 
+          {/* Quick Hardware Printer Status Card */}
+          <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-4 border border-[#ede5d8] shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-[#0284c7]">
+                  print
+                </span>
+                <h4 className="text-xs font-bold text-[#1c1917]">Printer Struk Kasir</h4>
+              </div>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  activePrinter
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-stone-100 text-stone-600'
+                }`}
+              >
+                {activePrinter ? '● Terhubung' : 'Terputus'}
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-[#fcfbf9] border border-[#ede7db] text-xs">
+              <p className="font-bold text-[#1c1917] truncate">
+                {activePrinter ? activePrinter.name : 'Belum Ada Printer Mini Terhubung'}
+              </p>
+              <p className="text-[10px] text-[#78716c] mt-0.5">
+                Kertas: {activePrinter?.paperWidth || printerConfig.paperWidth}mm • Auto-Print:{' '}
+                {printerConfig.autoPrintOnPayment ? 'Aktif' : 'Nonaktif'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={openPrinterModal}
+              className="w-full py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0284c7] text-xs font-bold border border-sky-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">bluetooth_searching</span>
+              <span>Kelola & Pindai Printer</span>
+            </button>
+          </div>
+
           {/* Navigation Tabs */}
           <div className="bg-[#fffdfa]/95 backdrop-blur-xs rounded-3xl p-2.5 border border-[#ede5d8] shadow-xs space-y-1">
             <button
@@ -359,6 +413,31 @@ export const PengaturanScreen: React.FC = () => {
               </div>
               <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
                 RAMAH MATA
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('printer')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-left text-sm font-semibold transition-all ${
+                activeTab === 'printer'
+                  ? 'bg-[#e0f2fe] text-[#0369a1] font-bold border border-[#bae6fd] shadow-2xs'
+                  : 'text-[#57534e] hover:bg-[#f7f3eb]'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className={`material-symbols-outlined text-[20px] text-[#0284c7] ${isPrinterScanning ? 'animate-spin' : ''}`}>
+                  print
+                </span>
+                <span>Printer Mini & Bluetooth</span>
+              </div>
+              <span
+                className={`px-1.5 py-0.2 text-[9px] font-bold rounded ${
+                  activePrinter
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}
+              >
+                {activePrinter ? 'AKTIF' : 'AUTO-SCAN'}
               </span>
             </button>
           </div>
@@ -1876,6 +1955,420 @@ export const PengaturanScreen: React.FC = () => {
                       Padat & Rapat
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 6: Printer Thermal Mini & Deteksi Bluetooth Global */}
+          {activeTab === 'printer' && (
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#ede7db] shadow-xs space-y-6">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-[#ede7db]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-[#e0f2fe] text-[#0284c7] flex items-center justify-center font-bold">
+                      <span className="material-symbols-outlined text-[18px]">print</span>
+                    </span>
+                    <h3 className="text-lg font-bold text-[#1c1917]">
+                      Printer Thermal Mini & Deteksi Bluetooth Global
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[#78716c] mt-1">
+                    Sistem mendeteksi printer Bluetooth portabel, kabel USB thermal, dan cetak struk ESC/POS secara otomatis di seluruh aplikasi.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => autoDetectPrinter(false)}
+                    disabled={isPrinterScanning}
+                    className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-[#0284c7] text-xs font-bold border border-sky-200 flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <span className={`material-symbols-outlined text-[16px] ${isPrinterScanning ? 'animate-spin' : ''}`}>
+                      autorenew
+                    </span>
+                    <span>{isPrinterScanning ? 'Memindai...' : 'Pindai Otomatis'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={printTestReceipt}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+                    <span>Tes Cetak Struk</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Printer Spotlight Box */}
+              <div
+                className={`p-5 rounded-2xl border transition-all ${
+                  activePrinter
+                    ? 'bg-linear-to-r from-emerald-50 via-teal-50/50 to-white border-emerald-200 shadow-xs'
+                    : 'bg-[#fcfbf9] border-stone-200'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
+                        activePrinter ? 'bg-emerald-600 text-white' : 'bg-stone-100 text-stone-400'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[26px]">
+                        {activePrinter?.type === 'bluetooth'
+                          ? 'bluetooth_connected'
+                          : activePrinter?.type === 'usb-serial'
+                          ? 'cable'
+                          : activePrinter
+                          ? 'print'
+                          : 'print_disabled'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-base font-extrabold text-[#1c1917]">
+                          {activePrinter ? activePrinter.name : 'Belum Ada Printer Terhubung'}
+                        </h4>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
+                            activePrinter
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}
+                        >
+                          {activePrinter
+                            ? `● ${activePrinter.type === 'bluetooth' ? 'Bluetooth' : activePrinter.type === 'usb-serial' ? 'USB Port' : 'Driver/Virtual'} Siap Cetak`
+                            : 'Mencari / Auto-Detect Aktif'}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-[#57534e]">
+                        <span>
+                          Lebar Kertas:{' '}
+                          <strong className="text-[#1c1917]">
+                            {activePrinter?.paperWidth || printerConfig.paperWidth} mm
+                          </strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Auto-Print:{' '}
+                          <strong className="text-[#1c1917]">
+                            {printerConfig.autoPrintOnPayment ? 'Aktif Saat Bayar' : 'Manual'}
+                          </strong>
+                        </span>
+                        {activePrinter?.batteryLevel && (
+                          <>
+                            <span>•</span>
+                            <span className="text-emerald-700 font-bold">
+                              🔋 Baterai: {activePrinter.batteryLevel}%
+                            </span>
+                          </>
+                        )}
+                        {activePrinter?.lastConnectedAt && (
+                          <>
+                            <span>•</span>
+                            <span className="text-[#78716c]">
+                              Tersambung:{' '}
+                              {new Date(activePrinter.lastConnectedAt).toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    {activePrinter ? (
+                      <button
+                        type="button"
+                        onClick={disconnectPrinter}
+                        className="px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold border border-rose-200 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        Putus Sambungan
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => autoDetectPrinter(false)}
+                        disabled={isPrinterScanning}
+                        className="px-4 py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                      >
+                        Deteksi Sekarang
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Connect Channels Grid */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-[#1c1917] uppercase tracking-wider">
+                  Jalur Sambungan Printer Mini
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Bluetooth */}
+                  <div className="p-4 rounded-2xl border border-sky-100 bg-[#f0f9ff] flex flex-col justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#0284c7] text-white flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">bluetooth</span>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-[#1c1917]">Bluetooth Thermal Mini</h5>
+                        <p className="text-[11px] text-[#57534e] mt-0.5 leading-relaxed">
+                          Panda, Blueprint, VSC, Eppos, Goojprt, Zjiang portable.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={connectBluetoothPrinter}
+                      disabled={isPrinterScanning}
+                      className="w-full py-2 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add_link</span>
+                      <span>Pasang Bluetooth</span>
+                    </button>
+                  </div>
+
+                  {/* USB Serial */}
+                  <div className="p-4 rounded-2xl border border-amber-100 bg-amber-50/50 flex flex-col justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">cable</span>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-[#1c1917]">Kabel USB Thermal (COM)</h5>
+                        <p className="text-[11px] text-[#57534e] mt-0.5 leading-relaxed">
+                          Printer kasir yang terhubung kabel USB ke komputer.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={connectUsbPrinter}
+                      disabled={isPrinterScanning}
+                      className="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">usb</span>
+                      <span>Pilih Port USB</span>
+                    </button>
+                  </div>
+
+                  {/* Virtual Simulator */}
+                  <div className="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 flex flex-col justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-[#1c1917]">Printer Virtual & Driver</h5>
+                        <p className="text-[11px] text-[#57534e] mt-0.5 leading-relaxed">
+                          Uji coba cetak struk tanpa alat fisik, hasil instan.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openPrinterModal}
+                      className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">tune</span>
+                      <span>Kelola di Modal</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto-Detection Engine Configuration */}
+              <div className="space-y-3 pt-2 border-t border-[#ede7db]">
+                <h4 className="text-xs font-bold text-[#1c1917] uppercase tracking-wider">
+                  Konfigurasi Deteksi Otomatis & Cetak Struk
+                </h4>
+
+                {/* Paper Width Selection */}
+                <div className="p-4 rounded-2xl bg-[#fcfbf9] border border-[#ede7db]">
+                  <label className="block text-xs font-bold text-[#1c1917] mb-2">
+                    Ukuran Lebar Kertas Struk Kasir:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPrinterPaperWidth(58)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        printerConfig.paperWidth === 58
+                          ? 'bg-[#e0f2fe] border-[#0284c7] text-[#0369a1] ring-2 ring-sky-100 font-bold'
+                          : 'bg-white border-[#ede7db] text-[#57534e] hover:bg-stone-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs">58 mm (Mini Portabel)</span>
+                        {printerConfig.paperWidth === 58 && (
+                          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] font-normal text-[#78716c] mt-0.5">
+                        Standar printer Bluetooth saku kasir (32 kolom teks).
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPrinterPaperWidth(80)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        printerConfig.paperWidth === 80
+                          ? 'bg-[#e0f2fe] border-[#0284c7] text-[#0369a1] ring-2 ring-sky-100 font-bold'
+                          : 'bg-white border-[#ede7db] text-[#57534e] hover:bg-stone-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs">80 mm (Standar POS)</span>
+                        {printerConfig.paperWidth === 80 && (
+                          <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] font-normal text-[#78716c] mt-0.5">
+                        Standar printer kasir besar minimarket/restoran (48 kolom teks).
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Toggles List */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#fcfbf9] border border-[#ede7db]">
+                    <div>
+                      <h5 className="text-xs font-bold text-[#1c1917]">
+                        Deteksi Otomatis Saat Buka Aplikasi
+                      </h5>
+                      <p className="text-[11px] text-[#78716c]">
+                        Memindai printer Bluetooth/USB otomatis saat kasir login.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={printerConfig.autoDetectOnLaunch}
+                      onChange={(e) => updatePrinterConfig({ autoDetectOnLaunch: e.target.checked })}
+                      className="w-4 h-4 text-[#0284c7] rounded border-stone-300"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#fcfbf9] border border-[#ede7db]">
+                    <div>
+                      <h5 className="text-xs font-bold text-[#1c1917]">
+                        Sambung Ulang Otomatis (Auto-Reconnect)
+                      </h5>
+                      <p className="text-[11px] text-[#78716c]">
+                        Otomatis menyambungkan kembali jika sinyal sempat terputus.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={printerConfig.autoReconnect}
+                      onChange={(e) => updatePrinterConfig({ autoReconnect: e.target.checked })}
+                      className="w-4 h-4 text-[#0284c7] rounded border-stone-300"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#fcfbf9] border border-[#ede7db]">
+                    <div>
+                      <h5 className="text-xs font-bold text-[#1c1917]">
+                        Pemindaian Berkala Latar Belakang (20s)
+                      </h5>
+                      <p className="text-[11px] text-[#78716c]">
+                        Mendeteksi printer otomatis ketika printer baru dinyalakan.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={printerConfig.autoScanInterval}
+                      onChange={(e) => updatePrinterConfig({ autoScanInterval: e.target.checked })}
+                      className="w-4 h-4 text-[#0284c7] rounded border-stone-300"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#fcfbf9] border border-[#ede7db]">
+                    <div>
+                      <h5 className="text-xs font-bold text-[#1c1917]">
+                        Cetak Otomatis Setiap Transaksi Selesai
+                      </h5>
+                      <p className="text-[11px] text-[#78716c]">
+                        Struk langsung tercetak begitu pembayaran kasir sukses.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={printerConfig.autoPrintOnPayment}
+                      onChange={(e) => updatePrinterConfig({ autoPrintOnPayment: e.target.checked })}
+                      className="w-4 h-4 text-[#0284c7] rounded border-stone-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Detection Diagnostic Logs */}
+              <div className="space-y-3 pt-2 border-t border-[#ede7db]">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-[#1c1917] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px] text-[#0284c7]">
+                      history
+                    </span>
+                    <span>Riwayat & Log Deteksi Printer ({printerLogs.length})</span>
+                  </h4>
+
+                  <button
+                    type="button"
+                    onClick={clearPrinterLogs}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">delete_sweep</span>
+                    <span>Bersihkan</span>
+                  </button>
+                </div>
+
+                <div className="bg-stone-950 text-stone-200 font-mono text-[11px] rounded-2xl p-4 max-h-56 overflow-y-auto space-y-1.5 border border-stone-800 shadow-inner">
+                  {printerLogs.length === 0 ? (
+                    <p className="text-stone-500 italic text-center py-4">
+                      Belum ada catatan aktivitas pemindaian printer.
+                    </p>
+                  ) : (
+                    printerLogs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-2.5 pb-1 border-b border-stone-850">
+                        <span className="text-stone-500 shrink-0">[{log.timestamp}]</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase shrink-0 ${
+                            log.source === 'Bluetooth'
+                              ? 'bg-sky-950 text-sky-400 border border-sky-800'
+                              : log.source === 'USB/Serial'
+                              ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                              : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          }`}
+                        >
+                          {log.source}
+                        </span>
+                        <span
+                          className={`break-words ${
+                            log.type === 'error'
+                              ? 'text-rose-400'
+                              : log.type === 'warning'
+                              ? 'text-amber-300'
+                              : log.type === 'success'
+                              ? 'text-emerald-400'
+                              : 'text-stone-300'
+                          }`}
+                        >
+                          {log.message}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

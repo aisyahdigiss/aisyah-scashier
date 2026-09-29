@@ -2,15 +2,26 @@ import React from 'react';
 import { usePOS } from '../../context/POSContext';
 
 export const ReceiptModal: React.FC = () => {
-  const { activeReceiptTransaction, setActiveReceiptTransaction, settings } = usePOS();
+  const {
+    activeReceiptTransaction,
+    setActiveReceiptTransaction,
+    settings,
+    activePrinter,
+    printTransactionReceipt,
+    openPrinterModal,
+  } = usePOS();
 
   if (!activeReceiptTransaction) return null;
 
   const trx = activeReceiptTransaction;
   const formatRupiah = (val: number) => `Rp ${val.toLocaleString('id-ID')}`;
 
-  const handlePrint = () => {
+  const handlePrintSystem = () => {
     window.print();
+  };
+
+  const handlePrintThermal = () => {
+    printTransactionReceipt(trx);
   };
 
   return (
@@ -195,21 +206,57 @@ export const ReceiptModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
+        {/* Printer Status Badge / Quick Link */}
+        <div className="flex items-center justify-between p-2 rounded-xl bg-stone-50 border border-stone-200 text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                activePrinter ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300'
+              }`}
+            />
+            <span className="text-[11px] font-medium text-stone-600 truncate">
+              {activePrinter
+                ? `Printer: ${activePrinter.name} (${activePrinter.paperWidth}mm)`
+                : 'Printer thermal belum terhubung'}
+            </span>
+          </div>
+
           <button
-            onClick={() => setActiveReceiptTransaction(null)}
-            className="py-2.5 rounded-xl bg-[#f7f3eb] hover:bg-[#eee7d8] text-[#57534e] font-bold text-xs transition-colors border border-[#ede5d8]"
+            type="button"
+            onClick={openPrinterModal}
+            className="text-[11px] font-bold text-[#0284c7] hover:underline whitespace-nowrap"
           >
-            Tutup
+            {activePrinter ? 'Ganti' : 'Hubungkan'}
           </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="space-y-2 pt-1">
           <button
-            onClick={handlePrint}
-            className="py-2.5 rounded-xl bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 border border-[#fde68a]"
+            type="button"
+            onClick={handlePrintThermal}
+            className="w-full py-2.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">print</span>
-            <span>Cetak Struk</span>
+            <span>Cetak ke Printer Mini Thermal (ESC/POS)</span>
           </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setActiveReceiptTransaction(null)}
+              className="py-2.5 rounded-xl bg-[#f7f3eb] hover:bg-[#eee7d8] text-[#57534e] font-bold text-xs transition-colors border border-[#ede5d8] cursor-pointer"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintSystem}
+              className="py-2.5 rounded-xl bg-[#fef9c3] hover:bg-[#fef08a] text-[#713f12] font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 border border-[#fde68a] cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+              <span>Cetak PDF / Driver</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

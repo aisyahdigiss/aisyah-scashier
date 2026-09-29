@@ -16,7 +16,19 @@ import {
   AuthUser,
   EyeCareTheme,
   SidebarLayoutMode,
+  PrinterDevice,
+  PrinterConfig,
+  PrinterLogEntry,
 } from '../types';
+import {
+  autoDetectConnectedPrinters,
+  requestBluetoothPrinter,
+  requestSerialPrinter,
+  registerGlobalPrinterListeners,
+  generateEscPosReceipt,
+  printThermalReceiptData,
+  DEFAULT_PRINTER_CONFIG,
+} from '../services/printerService';
 import {
   INITIAL_CATEGORIES,
   INITIAL_PRODUCTS,
@@ -193,6 +205,28 @@ interface POSContextType {
   // Turso Cloud Database
   dbStatus: 'connected' | 'syncing' | 'offline';
   syncWithTurso: () => Promise<void>;
+
+  // Global Mini & Bluetooth Printer Management
+  activePrinter: PrinterDevice | null;
+  printerList: PrinterDevice[];
+  isPrinterScanning: boolean;
+  printerConfig: PrinterConfig;
+  printerLogs: PrinterLogEntry[];
+  addPrinterLog: (entry: Omit<PrinterLogEntry, 'id' | 'timestamp'>) => void;
+  clearPrinterLogs: () => void;
+  globalPrinterBannerVisible: boolean;
+  setGlobalPrinterBannerVisible: (visible: boolean | ((prev: boolean) => boolean)) => void;
+  isPrinterModalOpen: boolean;
+  setIsPrinterModalOpen: (open: boolean) => void;
+  openPrinterModal: () => void;
+  autoDetectPrinter: (silent?: boolean) => Promise<void>;
+  connectBluetoothPrinter: () => Promise<{ success: boolean; message: string }>;
+  connectUsbPrinter: () => Promise<{ success: boolean; message: string }>;
+  disconnectPrinter: () => void;
+  setPrinterPaperWidth: (width: 58 | 80) => void;
+  updatePrinterConfig: (newConfig: Partial<PrinterConfig>) => void;
+  printTransactionReceipt: (transaction: Transaction) => Promise<boolean>;
+  printTestReceipt: () => Promise<boolean>;
 }
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -528,6 +562,318 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleZenFocusMode = () => {
     setZenFocusMode((prev) => !prev);
+  };
+
+  // Global Mini & Bluetooth Printer Management
+  const [activePrinter, setActivePrinter] = useState<PrinterDevice | null>(() => {
+    const saved = localStorage.getItem('kasirku_active_printer');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [printerList, setPrinterList] = useState<PrinterDevice[]>([]);
+  const [isPrinterScanning, setIsPrinterScanning] = useState<boolean>(false);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState<boolean>(false);
+  const [globalPrinterBannerVisible, setGlobalPrinterBannerVisible] = useState<boolean>(true);
+  const [printerConfig, setPrinterConfig] = useState<PrinterConfig>(() => {
+    const saved = localStorage.getItem('kasirku_printer_config');
+    return saved ? JSON.parse(saved) : DEFAULT_PRINTER_CONFIG;
+  });
+
+  const [printerLogs, setPrinterLogs] = useState<PrinterLogEntry[]>(() => [
+    {
+      id: 'log-boot',
+      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      type: 'info',
+      message: 'Sistem Deteksi Printer Global Diaktifkan',
+      source: 'AutoDetect',
+    },
+  ]);
+
+  const addPrinterLog = (entry: Omit<PrinterLogEntry, 'id' | 'timestamp'>) => {
+    const newEntry: PrinterLogEntry = {
+      ...entry,
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    };
+    setPrinterLogs((prev) => [newEntry, ...prev].slice(0, 50));
+  };
+
+  const clearPrinterLogs = () => {
+    setPrinterLogs([]);
+  };
+
+  const openPrinterModal = () => setIsPrinterModalOpen(true);
+
+  const autoDetectPrinter = async (silent = false) => {
+    setIsPrinterScanning(true);
+    if (!silent) {
+      playAudioTone('beep', soundTheme);
+      showToast('Memindai koneksi printer Bluetooth & USB di sekitar...', 'info');
+    }
+    addPrinterLog({
+      type: 'info',
+      message: 'Memulai pemindaian perangkat printer otomatis...',
+      source: 'AutoDetect',
+    });
+
+    try {
+      const res = await autoDetectConnectedPrinters();
+      setPrinterList(res.foundDevices);
+      if (res.autoConnected) {
+        setActivePrinter(res.autoConnected);
+        localStorage.setItem('kasirku_active_printer', JSON.stringify(res.autoConnected));
+        addPrinterLog({
+          type: 'success',
+          message: `Otomatis tersambung: ${res.autoConnected.name} (${res.autoConnected.paperWidth}mm)`,
+          source: res.source === 'bluetooth' ? 'Bluetooth' : res.source === 'usb-serial' ? 'USB/Serial' : 'AutoDetect',
+        });
+        if (!silent) {
+          playAudioTone('success', soundTheme);
+          showToast(res.message, 'success');
+        }
+      } else {
+        addPrinterLog({
+          type: 'info',
+          message: 'Pemindaian selesai: Tidak ada printer fisik baru. Driver sistem siap.',
+          source: 'AutoDetect',
+        });
+        if (!silent) {
+          showToast('Tidak ada printer fisik baru ditemukan. Siap cetak via driver sistem.', 'info');
+        }
+      }
+    } catch (err: any) {
+      console.warn('Gagal memindai printer otomatis:', err);
+      addPrinterLog({
+        type: 'error',
+        message: `Gagal memindai: ${err?.message || 'Error hardware'}`,
+        source: 'AutoDetect',
+      });
+      if (!silent) {
+        showToast('Gagal memindai printer otomatis.', 'error');
+      }
+    } finally {
+      setIsPrinterScanning(false);
+    }
+  };
+
+  // Auto-detect printer on launch, listen for hardware events, and run background auto-scanner
+  useEffect(() => {
+    let mounted = true;
+
+    // 1. Initial Launch Auto-Detect
+    if (printerConfig.autoDetectOnLaunch) {
+      autoDetectPrinter(true);
+    }
+
+    // 2. Register global hardware connect / disconnect listeners
+    const unregisterListeners = registerGlobalPrinterListeners((event, device) => {
+      if (!mounted) return;
+      if (event === 'connected') {
+        setActivePrinter(device);
+        setPrinterList((prev) => [device, ...prev.filter((d) => d.id !== device.id)]);
+        addPrinterLog({
+          type: 'success',
+          message: `Hardware terhubung otomatis: ${device.name}`,
+          source: device.type === 'bluetooth' ? 'Bluetooth' : 'USB/Serial',
+        });
+        if (printerConfig.notifyOnConnectionChange) {
+          playAudioTone('success', soundTheme);
+          showToast(`Printer terdeteksi otomatis: ${device.name}!`, 'success');
+        }
+      } else {
+        setActivePrinter((curr) => (curr?.id === device.id ? null : curr));
+        addPrinterLog({
+          type: 'warning',
+          message: `Hardware terputus: ${device.name}`,
+          source: device.type === 'bluetooth' ? 'Bluetooth' : 'USB/Serial',
+        });
+        if (printerConfig.notifyOnConnectionChange) {
+          playAudioTone('beep', soundTheme);
+          showToast(`Printer "${device.name}" terputus.`, 'info');
+        }
+        // Auto-reconnect attempt
+        if (printerConfig.autoReconnect) {
+          setTimeout(() => {
+            if (mounted) autoDetectPrinter(true);
+          }, 3000);
+        }
+      }
+    });
+
+    // 3. Periodic Background Auto-Scan (every 20 seconds if enabled)
+    const intervalTimer = setInterval(() => {
+      if (!mounted) return;
+      if (printerConfig.autoScanInterval) {
+        // If not connected to a physical device, silently scan for Bluetooth/USB
+        if (!activePrinter || activePrinter.status !== 'connected' || activePrinter.type === 'simulator') {
+          autoDetectPrinter(true);
+        }
+      }
+    }, 20000);
+
+    // 4. Focus & Visibility Change Watcher (e.g. tablet wakes up, cashier returns to POS tab)
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible' && mounted) {
+        if (!activePrinter || activePrinter.status !== 'connected') {
+          autoDetectPrinter(true);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    return () => {
+      mounted = false;
+      unregisterListeners();
+      clearInterval(intervalTimer);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+    };
+  }, [printerConfig.autoDetectOnLaunch, printerConfig.autoScanInterval, printerConfig.autoReconnect, printerConfig.notifyOnConnectionChange]);
+
+  useEffect(() => {
+    localStorage.setItem('kasirku_printer_config', JSON.stringify(printerConfig));
+  }, [printerConfig]);
+
+  const connectBluetoothPrinter = async (): Promise<{ success: boolean; message: string }> => {
+    setIsPrinterScanning(true);
+    try {
+      const res = await requestBluetoothPrinter(() => {
+        setActivePrinter(null);
+        showToast('Koneksi printer Bluetooth terputus.', 'info');
+      });
+
+      if (res.success && res.device) {
+        setActivePrinter(res.device);
+        setPrinterList((prev) => [res.device!, ...prev.filter((d) => d.id !== res.device!.id)]);
+        playAudioTone('success', soundTheme);
+        showToast(`Berhasil tersambung ke printer: ${res.device.name}!`, 'success');
+        return { success: true, message: res.message };
+      }
+      return { success: false, message: res.message };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Gagal menyambung printer Bluetooth' };
+    } finally {
+      setIsPrinterScanning(false);
+    }
+  };
+
+  const connectUsbPrinter = async (): Promise<{ success: boolean; message: string }> => {
+    setIsPrinterScanning(true);
+    try {
+      const res = await requestSerialPrinter();
+      if (res.success && res.device) {
+        setActivePrinter(res.device);
+        setPrinterList((prev) => [res.device!, ...prev.filter((d) => d.id !== res.device!.id)]);
+        playAudioTone('success', soundTheme);
+        showToast(`Berhasil tersambung ke printer USB: ${res.device.name}!`, 'success');
+        return { success: true, message: res.message };
+      }
+      return { success: false, message: res.message };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Gagal membuka koneksi USB' };
+    } finally {
+      setIsPrinterScanning(false);
+    }
+  };
+
+  const disconnectPrinter = () => {
+    const prevName = activePrinter?.name || 'Printer';
+    setActivePrinter(null);
+    localStorage.removeItem('kasirku_active_printer');
+    playAudioTone('beep', soundTheme);
+    showToast(`Printer "${prevName}" diputus.`, 'info');
+  };
+
+  const setPrinterPaperWidth = (width: 58 | 80) => {
+    setPrinterConfig((prev) => ({ ...prev, paperWidth: width }));
+    if (activePrinter) {
+      const updated = { ...activePrinter, paperWidth: width };
+      setActivePrinter(updated);
+      localStorage.setItem('kasirku_active_printer', JSON.stringify(updated));
+    }
+    showToast(`Ukuran kertas diatur ke ${width}mm`, 'info');
+  };
+
+  const updatePrinterConfig = (newConfig: Partial<PrinterConfig>) => {
+    setPrinterConfig((prev) => ({ ...prev, ...newConfig }));
+    showToast('Pengaturan printer diperbarui.', 'success');
+  };
+
+  const printTransactionReceipt = async (transaction: Transaction): Promise<boolean> => {
+    const targetPrinter = activePrinter || {
+      id: 'default-sim',
+      name: 'Printer Driver Sistem',
+      type: 'simulator' as const,
+      paperWidth: printerConfig.paperWidth,
+      status: 'connected' as const,
+    };
+
+    try {
+      const rawBytes = generateEscPosReceipt(
+        {
+          storeName: settings.storeName,
+          branchName: settings.branchName,
+          phone: settings.phone,
+          address: settings.address,
+        },
+        transaction,
+        printerConfig.paperWidth
+      );
+
+      const success = await printThermalReceiptData(rawBytes, targetPrinter);
+      if (success) {
+        playAudioTone('success', soundTheme);
+        showToast(`Struk ${transaction.invoiceNumber} berhasil dicetak!`, 'success');
+      }
+      return success;
+    } catch (err) {
+      console.error('Print transaction receipt error:', err);
+      showToast('Gagal mencetak struk transaksi.', 'error');
+      return false;
+    }
+  };
+
+  const printTestReceipt = async (): Promise<boolean> => {
+    const dummyTransaction: Transaction = {
+      id: `test-${Date.now()}`,
+      invoiceNumber: `TEST-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: Date.now(),
+      dateStr: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+      timeStr: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      cashierName: currentUser?.fullName || 'Super Admin Aisyah',
+      cashierId: currentUser?.id || 'admin-1',
+      items: [
+        {
+          productId: 'prod-test-1',
+          name: 'Caramel Macchiato (Regular)',
+          sku: 'KOP-001',
+          price: 28000,
+          quantity: 2,
+          subtotal: 56000,
+        },
+        {
+          productId: 'prod-test-2',
+          name: 'Croissant Butter Flaky',
+          sku: 'PAS-002',
+          price: 22000,
+          quantity: 1,
+          subtotal: 22000,
+        },
+      ],
+      subtotal: 78000,
+      discount: 0,
+      total: 78000,
+      paymentMethod: 'TUNAI',
+      amountReceived: 100000,
+      change: 22000,
+      status: 'Selesai',
+      orderType: 'Dine In',
+      tableNumber: '05',
+      customerName: 'Pelanggan Tes',
+    };
+
+    return printTransactionReceipt(dummyTransaction);
   };
 
   // Held Orders (Open Bills / Parkir Tagihan)
@@ -982,6 +1328,14 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     showToast(`Transaksi ${newInvoiceNumber} Berhasil!`, 'success');
+
+    // Automatically trigger thermal mini printer if enabled
+    if (printerConfig.autoPrintOnPayment) {
+      setTimeout(() => {
+        printTransactionReceipt(newTransaction);
+      }, 500);
+    }
+
     // Save transaction and decrement stocks in Turso Cloud Database
     tursoApi.saveTransaction(newTransaction).catch((err) => {
       console.warn('Failed to sync transaction to Turso cloud:', err);
@@ -1785,6 +2139,26 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUiDensity,
         dbStatus,
         syncWithTurso,
+        activePrinter,
+        printerList,
+        isPrinterScanning,
+        printerConfig,
+        printerLogs,
+        addPrinterLog,
+        clearPrinterLogs,
+        globalPrinterBannerVisible,
+        setGlobalPrinterBannerVisible,
+        isPrinterModalOpen,
+        setIsPrinterModalOpen,
+        openPrinterModal,
+        autoDetectPrinter,
+        connectBluetoothPrinter,
+        connectUsbPrinter,
+        disconnectPrinter,
+        setPrinterPaperWidth,
+        updatePrinterConfig,
+        printTransactionReceipt,
+        printTestReceipt,
       }}
     >
       {children}

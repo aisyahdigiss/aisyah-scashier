@@ -166,3 +166,41 @@ export interface AuthUser {
   createdAt: string;
   passwordUpdatedAt?: string;
 }
+
+export type PrinterConnectionType = 'bluetooth' | 'usb-serial' | 'system' | 'simulator';
+
+export interface PrinterDevice {
+  id: string;
+  name: string;
+  type: PrinterConnectionType;
+  paperWidth: 58 | 80;
+  status: 'connected' | 'disconnected' | 'connecting';
+  lastConnectedAt?: string;
+  signalStrength?: 'Sangat Kuat' | 'Baik' | 'Cukup';
+  batteryLevel?: number;
+  macAddress?: string;
+  vendorId?: string;
+  productId?: string;
+}
+
+export interface PrinterLogEntry {
+  id: string;
+  timestamp: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  message: string;
+  source: 'Bluetooth' | 'USB/Serial' | 'System' | 'AutoDetect';
+}
+
+export interface PrinterConfig {
+  autoDetectOnLaunch: boolean;
+  autoReconnect: boolean;
+  autoScanInterval: boolean;
+  notifyOnConnectionChange: boolean;
+  autoPrintOnPayment: boolean;
+  paperWidth: 58 | 80;
+  cutPaper: boolean;
+  printLogo: boolean;
+  headerNote?: string;
+  footerNote?: string;
+  numberOfCopies: number;
+}

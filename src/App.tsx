@@ -9,6 +9,8 @@ import { StoreLogoModal } from './components/modals/StoreLogoModal';
 import { HeldOrdersModal } from './components/modals/HeldOrdersModal';
 import { ClosingShiftModal } from './components/modals/ClosingShiftModal';
 import { ChangePhotoModal } from './components/modals/ChangePhotoModal';
+import { PrinterConnectionModal } from './components/modals/PrinterConnectionModal';
+import { GlobalPrinterDetectorBanner } from './components/common/GlobalPrinterDetectorBanner';
 import { SmartAssistantDrawer } from './components/common/SmartAssistantDrawer';
 import { AuthScreen } from './components/auth/AuthScreen';
 
@@ -142,6 +144,8 @@ const MainLayout: React.FC = () => {
       <ToastContainer />
       <PaymentModal />
       <ReceiptModal />
+      <PrinterConnectionModal />
+      <GlobalPrinterDetectorBanner />
       <StoreLogoModal />
       <HeldOrdersModal />
       <ClosingShiftModal />

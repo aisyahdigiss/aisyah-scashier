@@ -35,6 +35,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
     antiGlareFilter,
     dbStatus,
     syncWithTurso,
+    activePrinter,
+    openPrinterModal,
+    isPrinterScanning,
   } = usePOS();
 
   const [showCashierMenu, setShowCashierMenu] = useState(false);
@@ -228,6 +231,62 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleMobileMenu }) => {
             <span className="material-symbols-outlined text-[20px]">visibility</span>
             {(antiGlareFilter || eyeCareTheme !== 'warm-beige') && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0284c7]" />
+            )}
+          </button>
+
+          {/* Global Printer Mini / Bluetooth Status Badge */}
+          <button
+            type="button"
+            onClick={openPrinterModal}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border shadow-2xs cursor-pointer ${
+              activePrinter
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                : isPrinterScanning
+                ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800 animate-pulse'
+                : 'bg-stone-50 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-100'
+            }`}
+            title={`Status Koneksi Printer Global:\n${
+              activePrinter
+                ? `${activePrinter.name} (${activePrinter.paperWidth}mm) - ${
+                    activePrinter.type === 'bluetooth'
+                      ? 'Bluetooth ESC/POS'
+                      : activePrinter.type === 'usb-serial'
+                      ? 'Kabel USB Serial'
+                      : 'Virtual / Driver'
+                  } (Klik untuk kelola & tes)`
+                : 'Mencari / Standby - Klik untuk mendeteksi printer Bluetooth/USB otomatis'
+            }`}
+          >
+            <span
+              className={`material-symbols-outlined text-[16px] ${
+                isPrinterScanning
+                  ? 'text-sky-600 animate-spin'
+                  : activePrinter
+                  ? 'text-emerald-600'
+                  : 'text-stone-400'
+              }`}
+            >
+              {isPrinterScanning
+                ? 'sync'
+                : activePrinter?.type === 'bluetooth'
+                ? 'bluetooth_connected'
+                : activePrinter?.type === 'usb-serial'
+                ? 'cable'
+                : activePrinter
+                ? 'print'
+                : 'sensors'}
+            </span>
+            <span className="hidden sm:inline text-[11px] font-medium tracking-tight">
+              {isPrinterScanning
+                ? 'Auto-Detect...'
+                : activePrinter
+                ? `${activePrinter.name.slice(0, 12)} (${activePrinter.paperWidth}mm)`
+                : 'Printer: Auto-Detect'}
+            </span>
+            {activePrinter ? (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            ) : (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             )}
           </button>
 
